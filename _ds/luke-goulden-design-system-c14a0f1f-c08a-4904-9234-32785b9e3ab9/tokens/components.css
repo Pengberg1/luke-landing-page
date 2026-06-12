@@ -1,0 +1,189 @@
+/* ============================================================
+   Luke Goulden — Component styles
+   Class-based so they ship to consumers and back the React
+   components. Calm, structured, premium-restraint UI.
+   ============================================================ */
+
+/* ---- Button ------------------------------------------------ */
+.lg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 3rem;
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--dur-base) var(--ease-soft),
+              color var(--dur-base) var(--ease-soft),
+              border-color var(--dur-base) var(--ease-soft),
+              transform var(--dur-fast) var(--ease-soft);
+}
+.lg-btn:hover { transform: translateY(-1px); }
+.lg-btn:active { transform: translateY(0); }
+.lg-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.lg-btn[disabled], .lg-btn[aria-disabled="true"] {
+  opacity: 0.45; pointer-events: none; transform: none;
+}
+.lg-btn__icon { width: 1.05em; height: 1.05em; flex: none; }
+
+.lg-btn--primary   { background: var(--lg-teal); color: var(--lg-offwhite); }
+.lg-btn--primary:hover { background: var(--lg-teal-800); }
+.lg-btn--coral     { background: var(--lg-coral); color: var(--lg-white); }
+.lg-btn--coral:hover { background: var(--lg-coral-700); }
+.lg-btn--secondary { background: transparent; color: var(--lg-teal); border-color: rgba(26,60,52,0.26); }
+.lg-btn--secondary:hover { background: rgba(26,60,52,0.06); }
+.lg-btn--ghost     { background: transparent; color: var(--lg-teal); }
+.lg-btn--ghost:hover { background: rgba(26,60,52,0.06); }
+.lg-btn--ondark    { background: var(--lg-offwhite); color: var(--lg-teal); }
+.lg-btn--ondark:hover { background: #fff; }
+
+.lg-btn--sm { min-height: 2.4rem; padding: 0.6rem 1.05rem; font-size: 0.68rem; }
+.lg-btn--lg { min-height: 3.4rem; padding: 1.05rem 2rem; font-size: 0.82rem; }
+.lg-btn--block { display: flex; width: 100%; }
+
+/* ---- Badge & Tag ------------------------------------------- */
+.lg-badge {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  padding: 0.34em 0.7em;
+  border-radius: var(--radius-xs);
+  font-family: var(--font-display);
+  font-size: 0.66rem; font-weight: var(--fw-bold);
+  letter-spacing: 0.1em; text-transform: uppercase; line-height: 1;
+}
+.lg-badge--sage    { background: var(--lg-sage-soft); color: var(--lg-teal); }
+.lg-badge--teal    { background: var(--lg-teal); color: var(--lg-offwhite); }
+.lg-badge--coral   { background: var(--lg-coral-tint); color: var(--lg-coral-700); }
+.lg-badge--neutral { background: rgba(30,30,30,0.07); color: var(--text-muted); }
+
+.lg-tag {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  padding: 0.42em 0.9em;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--lg-line-strong);
+  font-size: 0.8rem; font-weight: var(--fw-medium);
+  color: var(--lg-charcoal); background: transparent;
+}
+.lg-tag--filled { background: var(--lg-sage-soft); border-color: transparent; color: var(--lg-teal); }
+
+/* ---- Card -------------------------------------------------- */
+.lg-card {
+  background: var(--surface-card);
+  border: var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-card);
+}
+.lg-card--flat { box-shadow: none; background: transparent; }
+.lg-card--calm { background: var(--lg-sage-soft); border-color: transparent; box-shadow: none; }
+.lg-card--dark { background: var(--lg-teal); border-color: transparent; color: var(--lg-offwhite); box-shadow: none; }
+.lg-card--dark :where(h1,h2,h3,h4) { color: var(--lg-offwhite); }
+
+/* ---- Form -------------------------------------------------- */
+.lg-field { display: grid; gap: var(--space-2xs); }
+.lg-label { font-size: 0.82rem; font-weight: var(--fw-semibold); color: var(--lg-teal); }
+.lg-hint  { font-size: 0.78rem; color: var(--text-muted); }
+.lg-error { font-size: 0.78rem; color: var(--lg-coral-700); }
+.lg-input, .lg-textarea, .lg-select {
+  width: 100%; min-height: 3rem;
+  padding: 0.8rem 1rem;
+  border: var(--border-input);
+  border-radius: var(--radius-xs);
+  background: var(--lg-white);
+  color: var(--lg-charcoal);
+  font: inherit; font-size: 1rem;
+  transition: border-color var(--dur-base) var(--ease-soft), box-shadow var(--dur-base) var(--ease-soft);
+}
+.lg-textarea { min-height: 7.5rem; resize: vertical; }
+.lg-input::placeholder, .lg-textarea::placeholder { color: rgba(30,30,30,0.42); }
+.lg-input:focus, .lg-textarea:focus, .lg-select:focus {
+  border-color: var(--lg-teal); outline: none;
+  box-shadow: 0 0 0 3px rgba(26,60,52,0.12);
+}
+.lg-field--error .lg-input, .lg-field--error .lg-textarea { border-color: var(--lg-coral); }
+
+/* ---- Stat -------------------------------------------------- */
+.lg-stat { display: grid; gap: var(--space-2xs); }
+.lg-stat__num {
+  font-family: var(--font-display); font-weight: var(--fw-extrabold);
+  font-size: clamp(2rem, 6vw, 3rem); line-height: 1;
+  letter-spacing: -0.02em; color: var(--lg-teal);
+}
+.lg-stat--coral .lg-stat__num { color: var(--lg-coral); }
+.lg-stat--ondark .lg-stat__num { color: var(--lg-offwhite); }
+.lg-stat__label {
+  font-size: 0.72rem; font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+}
+.lg-stat--ondark .lg-stat__label { color: var(--text-on-dark-muted); }
+
+/* ---- Testimonial / Quote ----------------------------------- */
+.lg-quote {
+  border-left: var(--border-accent);
+  padding-left: var(--space-lg);
+  max-width: 44rem;
+}
+.lg-quote__text {
+  font-family: var(--font-display); font-weight: var(--fw-medium);
+  font-size: clamp(1.25rem, 2.6vw, 1.6rem); line-height: var(--lh-snug);
+  letter-spacing: -0.01em; color: var(--lg-teal); margin: 0;
+}
+.lg-quote__cite {
+  display: flex; align-items: center; gap: var(--space-sm);
+  margin-top: var(--space-md); font-size: 0.82rem;
+}
+.lg-quote__cite b { color: var(--lg-charcoal); font-weight: var(--fw-bold); }
+.lg-quote__cite span { color: var(--text-muted); }
+
+/* ---- Avatar ------------------------------------------------ */
+.lg-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 2.75rem; height: 2.75rem; border-radius: var(--radius-pill);
+  background: var(--lg-sage-soft); color: var(--lg-teal);
+  font-weight: var(--fw-bold); font-size: 0.9rem; overflow: hidden; flex: none;
+}
+.lg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---- Accordion (FAQ) --------------------------------------- */
+.lg-accordion { border-top: 1px solid var(--lg-line); }
+.lg-accordion__item { border-bottom: 1px solid var(--lg-line); }
+.lg-accordion__head {
+  list-style: none; cursor: pointer; user-select: none;
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
+  padding: var(--space-lg) 0;
+  font-family: var(--font-display); font-weight: var(--fw-semibold);
+  font-size: 1.02rem; color: var(--lg-teal);
+}
+.lg-accordion__head::-webkit-details-marker { display: none; }
+.lg-accordion__icon { color: var(--lg-coral); transition: transform var(--dur-base) var(--ease-soft); flex: none; }
+.lg-accordion__item[open] .lg-accordion__icon { transform: rotate(45deg); }
+.lg-accordion__body { padding: 0 0 var(--space-lg); color: var(--text-muted); font-size: 0.95rem; line-height: var(--lh-body); max-width: 56ch; }
+
+/* ---- Tick / feature item ----------------------------------- */
+.lg-tick { display: flex; align-items: flex-start; gap: var(--space-sm); font-size: 0.95rem; color: var(--lg-charcoal); line-height: 1.4; }
+.lg-tick__icon { flex: none; color: var(--lg-teal); margin-top: 0.1em; }
+.lg-tick--cross .lg-tick__icon { color: var(--lg-charcoal); }
+
+/* ---- Transformation card ----------------------------------- */
+.lg-transform {
+  position: relative; border-radius: var(--radius-lg); overflow: hidden;
+  background: #ddd; box-shadow: var(--shadow-card); aspect-ratio: 3 / 4;
+}
+.lg-transform img { width: 100%; height: 100%; object-fit: cover; }
+.lg-transform__cap {
+  position: absolute; inset: auto 0 0 0;
+  background: linear-gradient(180deg, transparent, rgba(16,36,32,0.88) 62%);
+  color: var(--lg-offwhite); padding: 2.6rem 0.7rem 0.9rem; text-align: center;
+}
+.lg-transform__name { font-size: 0.66rem; font-weight: var(--fw-bold); letter-spacing: 0.16em; text-transform: uppercase; color: var(--lg-sage); }
+.lg-transform__result { font-family: var(--font-display); font-weight: var(--fw-extrabold); font-size: 1.3rem; line-height: 1; letter-spacing: -0.01em; margin: 0.18rem 0; }
+.lg-transform__weeks { font-size: 0.6rem; font-weight: var(--fw-semibold); letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.85; }

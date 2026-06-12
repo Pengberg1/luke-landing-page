@@ -1,0 +1,63 @@
+/* ============================================================
+   Luke Goulden — Spacing, Radius, Shadow, Layout, Motion
+   Structure over noise. Generous whitespace. Soft, restrained UI.
+   ============================================================ */
+
+:root {
+  /* ---- Spacing scale ---------------------------------------- */
+  --space-2xs: 0.25rem;  /* 4   */
+  --space-xs:  0.5rem;   /* 8   */
+  --space-sm:  0.75rem;  /* 12  */
+  --space-md:  1rem;     /* 16  */
+  --space-lg:  1.5rem;   /* 24  */
+  --space-xl:  2rem;     /* 32  */
+  --space-2xl: 3rem;     /* 48  */
+  --space-3xl: 4rem;     /* 64  */
+  --space-4xl: 6rem;     /* 96  */
+  --space-5xl: 8rem;     /* 128 — section rhythm on desktop */
+
+  /* ---- Radii — soft, never bubbly --------------------------- */
+  --radius-xs: 0.25rem;  /* 4  · buttons, inputs */
+  --radius-sm: 0.375rem; /* 6  */
+  --radius-md: 0.5rem;   /* 8  */
+  --radius-lg: 0.75rem;  /* 12 · cards */
+  --radius-xl: 1rem;     /* 16 */
+  --radius-pill: 999px;
+
+  /* ---- Shadows — extremely soft, or none -------------------- */
+  --shadow-none: none;
+  --shadow-xs:   0 1px 2px rgba(16, 36, 32, 0.04);
+  --shadow-soft: 0 8px 30px rgba(16, 36, 32, 0.06);
+  --shadow-card: 0 6px 24px rgba(16, 36, 32, 0.08);
+  --shadow-lift: 0 18px 48px rgba(16, 36, 32, 0.14);
+
+  /* ---- Borders ---------------------------------------------- */
+  --border-hairline: 1px solid var(--lg-line);
+  --border-card:     1px solid var(--lg-line);
+  --border-input:    1px solid rgba(30, 30, 30, 0.18); /* @kind other */
+  --border-accent:   3px solid var(--lg-coral); /* testimonial rule */
+
+  /* ---- Layout widths ---------------------------------------- */
+  --w-text:    42rem;   /* long-form column   */
+  --w-content: 72rem;   /* default container  */
+  --w-wide:    84rem;   /* wide container     */
+  --gutter:    1.25rem;
+
+  /* ---- Section padding -------------------------------------- */
+  --section-y:    var(--space-4xl);
+  --section-y-sm: var(--space-3xl);
+  --section-y-lg: var(--space-5xl);
+
+  /* ---- Motion — supports clarity, never shows off ----------- */
+  --ease-out:   cubic-bezier(0.22, 0.61, 0.36, 1); /* @kind other */
+  --ease-soft:  cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+  --dur-fast:   150ms; /* @kind other */
+  --dur-base:   200ms; /* @kind other */
+  --dur-slow:   320ms; /* @kind other */
+  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
+
+  /* ---- Z-index ---------------------------------------------- */
+  --z-header: 50; /* @kind other */
+  --z-overlay: 80; /* @kind other */
+  --z-modal: 100; /* @kind other */
+}

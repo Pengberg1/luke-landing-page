@@ -1,0 +1,63 @@
+/* ============================================================
+   Luke Goulden — Colour
+   Five colours. Strict roles. Never substitute.
+   "Real Change. Real Results. Built for Real Life."
+   ============================================================ */
+
+:root {
+  /* ---- Brand palette (the locked five + mono) ---------------- */
+  --lg-teal:      #1A3C34;  /* Primary   · brand trust   */
+  --lg-coral:     #E05A3A;  /* Accent    · energy (editorial/CTA only) */
+  --lg-sage:      #84B59F;  /* Secondary · calm          */
+  --lg-offwhite:  #F7F5F0;  /* Background· warmth        */
+  --lg-charcoal:  #1E1E1E;  /* Text      · authority     */
+  --lg-black:     #000000;
+  --lg-white:     #FFFFFF;
+
+  /* ---- Teal ramp (derived — for hovers, fills, depth) -------- */
+  --lg-teal-900:  #102420;
+  --lg-teal-800:  #163129;  /* button hover */
+  --lg-teal-700:  #1A3C34;  /* = base       */
+  --lg-teal-600:  #2C5C50;
+  --lg-teal-500:  #3E7A6B;
+
+  /* ---- Coral ramp ------------------------------------------- */
+  --lg-coral-700: #C94E31;  /* button hover */
+  --lg-coral-600: #E05A3A;  /* = base       */
+  --lg-coral-500: #E97357;
+
+  /* ---- Sage ramp / tints ------------------------------------ */
+  --lg-sage-600:  #6FA189;
+  --lg-sage-500:  #84B59F;  /* = base       */
+  --lg-sage-soft: rgba(132, 181, 159, 0.16); /* calm panel fill */
+  --lg-teal-tint: rgba(26, 60, 52, 0.06);    /* subtle teal wash */
+  --lg-coral-tint:rgba(224, 90, 58, 0.10);   /* "don't" / alert wash */
+
+  /* ---- Lines & overlays ------------------------------------- */
+  --lg-line:        rgba(30, 30, 30, 0.12);
+  --lg-line-strong: rgba(30, 30, 30, 0.22);
+  --lg-line-onteal: rgba(247, 245, 240, 0.16);
+  --lg-overlay-teal: rgba(16, 36, 32, 0.62);  /* photo overlay for white text */
+
+  /* ============================================================
+     Semantic aliases — reach for these in product code
+     ============================================================ */
+  --surface-page:    var(--lg-offwhite);
+  --surface-card:    var(--lg-white);
+  --surface-dark:    var(--lg-teal);     /* reversed sections */
+  --surface-ink:     var(--lg-charcoal); /* near-black sections */
+  --surface-calm:    var(--lg-sage-soft);
+
+  --text-strong:     var(--lg-charcoal);
+  --text-heading:    var(--lg-teal);
+  --text-body:       var(--lg-charcoal);
+  --text-muted:      rgba(30, 30, 30, 0.66);
+  --text-on-dark:    var(--lg-offwhite);
+  --text-on-dark-muted: rgba(247, 245, 240, 0.70);
+  --text-accent:     var(--lg-coral);
+
+  --border-subtle:   var(--lg-line);
+  --border-onteal:   var(--lg-line-onteal);
+
+  --focus-ring:      var(--lg-coral);
+}

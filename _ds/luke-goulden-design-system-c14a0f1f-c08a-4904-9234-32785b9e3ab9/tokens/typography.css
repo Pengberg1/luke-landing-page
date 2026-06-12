@@ -1,0 +1,63 @@
+/* ============================================================
+   Luke Goulden — Typography
+   One family: Manrope. Two voices: tracked caps + clean body.
+   Wordmark: tracked caps · Headlines: tight · UI caps: wide.
+
+   Scale (rem @16px): xs 12 · sm 14 · base 16 · md 18 (body) ·
+   lg 20 · xl 24 · 2xl 32 (H2) · 3xl 40 · 4xl 48 (H1) · 5xl 64 · hero fluid→64
+   ============================================================ */
+
+:root {
+  /* ---- Families --------------------------------------------- */
+  --font-sans: "Manrope", "Manrope Static", "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  /* Display + body share the family; weight & tracking differentiate. */
+  --font-display: var(--font-sans);
+  --font-body:    var(--font-sans);
+
+  /* ---- Weights ---------------------------------------------- */
+  --fw-light: 300; /* @kind font */
+  --fw-regular: 400; /* @kind font */
+  --fw-medium: 500; /* @kind font */
+  --fw-semibold: 600; /* @kind font */
+  --fw-bold: 700; /* @kind font */
+  --fw-extrabold: 800; /* @kind font */
+
+  /* ---- Type scale ------------------------------------------- */
+  --fs-xs: 0.75rem; /* @kind font */
+  --fs-sm: 0.875rem; /* @kind font */
+  --fs-base: 1rem; /* @kind font */
+  --fs-md: 1.125rem; /* @kind font */
+  --fs-lg: 1.25rem; /* @kind font */
+  --fs-xl: 1.5rem; /* @kind font */
+  --fs-2xl: 2rem; /* @kind font */
+  --fs-3xl: 2.5rem; /* @kind font */
+  --fs-4xl: 3rem; /* @kind font */
+  --fs-5xl: 4rem; /* @kind font */
+
+  /* ---- Fluid display sizes ---------------------------------- */
+  --fs-h1: clamp(2rem, 5vw, 3rem); /* @kind font */
+  --fs-h2: clamp(1.5rem, 4vw, 2rem); /* @kind font */
+  --fs-h3: clamp(1.25rem, 3vw, 1.5rem); /* @kind font */
+  --fs-h4: clamp(1.125rem, 2.5vw, 1.25rem); /* @kind font */
+  --fs-hero: clamp(2.4rem, 5.6vw, 4rem); /* @kind font */
+
+  /* ---- Line heights ----------------------------------------- */
+  --lh-tight: 1.05; /* @kind font */
+  --lh-heading: 1.15; /* @kind font */
+  --lh-snug: 1.35; /* @kind font */
+  --lh-body: 1.6; /* @kind font */
+  --lh-relaxed: 1.75; /* @kind font */
+
+  /* ---- Letter spacing (tracking) ---------------------------- */
+  --tr-wordmark: 0.22em; /* @kind font */
+  --tr-caps: 0.18em; /* @kind font */
+  --tr-caps-wide: 0.28em; /* @kind font */
+  --tr-heading: -0.015em; /* @kind font */
+  --tr-snug: -0.01em; /* @kind font */
+  --tr-normal: 0; /* @kind font */
+
+  /* ---- Body measure ----------------------------------------- */
+  --measure: 66ch; /* @kind other */
+  --measure-tight: 46ch; /* @kind other */
+  --measure-quote: 28ch; /* @kind other */
+}

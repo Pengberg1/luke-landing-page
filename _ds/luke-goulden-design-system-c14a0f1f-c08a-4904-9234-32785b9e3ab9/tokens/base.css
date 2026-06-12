@@ -1,0 +1,75 @@
+/* ============================================================
+   Luke Goulden — Base reset & element defaults
+   Editorial clarity. Minimal chrome. Generous breathing room.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-body);
+  color: var(--text-body);
+  background: var(--surface-page);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, picture, svg, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 var(--space-md);
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-heading);
+  letter-spacing: var(--tr-heading);
+  color: var(--text-heading);
+  text-wrap: balance;
+}
+h1 { font-size: var(--fs-h1); line-height: var(--lh-tight); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
+h4 { font-size: var(--fs-h4); }
+
+p { margin: 0 0 var(--space-md); max-width: var(--measure); text-wrap: pretty; }
+strong, b { font-weight: var(--fw-bold); }
+small { font-size: var(--fs-sm); }
+
+ul[role="list"], ol[role="list"] { list-style: none; margin: 0; padding: 0; }
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+::selection { background: var(--lg-sage); color: var(--lg-teal-900); }
+
+/* ---- A few editorial helpers used across cards & kits ------ */
+.lg-eyebrow {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+.lg-lead {
+  font-size: var(--fs-lg);
+  line-height: var(--lh-snug);
+  color: var(--text-body);
+  max-width: var(--measure-tight);
+}
+.lg-container { width: min(100% - 2.5rem, var(--w-content)); margin-inline: auto; }
+.lg-container-wide { width: min(100% - 2.5rem, var(--w-wide)); margin-inline: auto; }

@@ -1,0 +1,12 @@
+/* ============================================================
+   Luke Goulden — Design System · Global entry point
+   Link THIS one file to inherit the full system.
+   Order: fonts → tokens → base.
+   ============================================================ */
+
+@import "tokens/fonts.css";
+@import "tokens/colors.css";
+@import "tokens/typography.css";
+@import "tokens/spacing.css";
+@import "tokens/base.css";
+@import "tokens/components.css";

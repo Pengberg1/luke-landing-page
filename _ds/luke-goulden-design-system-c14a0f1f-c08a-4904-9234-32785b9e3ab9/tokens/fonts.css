@@ -1,0 +1,60 @@
+/* ============================================================
+   Luke Goulden — Webfonts
+   Manrope is the system typeface (licensed files supplied).
+   It carries both the display/wordmark role and body/UI role.
+   The G-Cut brand book references Montserrat for the wordmark;
+   Manrope is the shipped web standard — a close geometric grotesque.
+   ============================================================ */
+
+/* Variable font — preferred when supported (weights 200–800) */
+@font-face {
+  font-family: "Manrope";
+  src: url("../assets/fonts/Manrope-Variable.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Static fallbacks for engines without variable support */
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Manrope Static";
+  src: url("../assets/fonts/Manrope-ExtraBold.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
