@@ -604,6 +604,9 @@
       }, { rootMargin: '-40% 0px 0px 0px' }).observe(hero);
     }
 
+<?php if (!isset($_GET['preview'])): /* Admin/report thumbnails load this page in an
+    iframe with ?preview=1. Without this guard, every visit to the admin would log
+    four page views and quietly ruin the very numbers the admin exists to show. */ ?>
     /* ---- Measurement -------------------------------------------------
        First-party, cookieless. Answers the only question this page owns:
        of everyone who saw it, how many went to the application form — and
@@ -634,6 +637,7 @@
         if (id) { beacon('e=cta&lp=<?= $LP_ID ?>&c=' + encodeURIComponent(id)); }
       });
     });
+<?php endif; ?>
   })();
 </script>
 

@@ -203,11 +203,34 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
 
   .actions{display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap}
   .lpfilter{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:2rem}
-  .lpfilter a{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  .lpfilter a{display:inline-flex;align-items:center;gap:.4rem;
+              font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
               text-decoration:none;color:var(--teal);border:1px solid var(--line);
               padding:.4rem .8rem;border-radius:99px;background:#fff}
   .lpfilter a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
   .lpfilter a.off{opacity:.55}
+  .lpfilter .sw{width:.7rem;height:.7rem;border-radius:99px;border:1px solid rgba(0,0,0,.15);flex:none}
+
+  /* Landing pages, shown as pages. A row of hex codes and a table told you
+     nothing about which page you were looking at; a thumbnail of the live page
+     tells you instantly. The iframe is the real page, so it can never go stale. */
+  .lpcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(14rem,1fr));gap:1rem}
+  .lpcard{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .lpcard.win{border-color:var(--sage);box-shadow:0 0 0 2px rgba(132,181,159,.35)}
+  .lpthumb{display:block;height:9rem;overflow:hidden;background:#e9e6e0;
+           border-bottom:1px solid var(--line)}
+  .lpthumb iframe{width:1440px;height:1100px;border:0;transform:scale(.17);
+                  transform-origin:top left;pointer-events:none}
+  .lpbody{padding:.85rem .95rem}
+  .lphead{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.35rem}
+  .lphead b{color:var(--teal);font-size:.88rem}
+  .tag{font-size:.55rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+       padding:.18rem .45rem;border-radius:99px;background:rgba(132,181,159,.28);color:#2f6a55}
+  .tag--off{background:rgba(30,30,30,.08);color:var(--muted)}
+  .lprate{font-size:1.6rem;font-weight:800;color:var(--teal);line-height:1;
+          letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .lpnums{font-size:.76rem;color:var(--muted);margin-top:.25rem}
+  @media print{ .lpthumb{display:none} }
   .btn{display:inline-flex;align-items:center;gap:.4rem;border:0;cursor:pointer;
        background:var(--coral);color:#fff;font:inherit;font-weight:700;font-size:.78rem;
        letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.15rem;border-radius:4px}
@@ -259,7 +282,11 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     <a class="<?= $lpFilter === '' ? 'on' : '' ?>" href="?">All pages</a>
     <?php foreach ($LPS as $id => $v): ?>
       <a class="<?= $lpFilter === $id ? 'on' : '' ?><?= empty($v['live']) ? ' off' : '' ?>"
-         href="?lp=<?= $id ?>"><?= htmlspecialchars($v['name']) ?><?= empty($v['live']) ? ' · paused' : '' ?></a>
+         href="?lp=<?= $id ?>">
+        <span class="sw" style="background:<?= htmlspecialchars($v['colors']['hero_bg'] ?? '#1A3C34') ?>"></span>
+        <span class="sw" style="background:<?= htmlspecialchars($v['colors']['accent'] ?? '#E05A3A') ?>"></span>
+        <?= htmlspecialchars($v['name']) ?><?= empty($v['live']) ? ' · paused' : '' ?>
+      </a>
     <?php endforeach; ?>
   </div>
   <?php $me = auth_user(); if ($me): ?>
@@ -313,22 +340,48 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     <h2>Which landing page converts</h2>
     <?php if (!$this7['lp']): ?>
       <div class="empty">No traffic on any page yet.</div>
-    <?php else: ?>
-      <table>
-        <tr><th>Landing page</th><th>Address</th><th class="num">Saw</th><th class="num">Clicked</th><th class="num">Click-through rate</th></tr>
-        <?php foreach ($this7['lp'] as $id => $x):
-              $v = $LPS[$id] ?? ['name' => 'Page ' . $id, 'path' => '/']; ?>
-          <tr>
-            <td><b><?= htmlspecialchars($v['name']) ?></b><?= empty($v['live']) ? ' <span style="color:var(--muted);font-size:.8em">(paused)</span>' : '' ?></td>
-            <td style="color:var(--muted);font-size:.85em"><?= htmlspecialchars($v['path'] ?? '/') ?></td>
-            <td class="num"><?= number_format($x['v']) ?></td>
-            <td class="num"><?= number_format($x['c']) ?></td>
-            <td class="num"><?= pct($x['c'], $x['v']) ?>%</td>
-          </tr>
+    <?php else:
+        /* Sort by click-through rate, best first: the question this section answers
+           is "which page should we run", and that is a rate question, not a volume
+           one. The winner should be the first thing the eye lands on. */
+        $rows = [];
+        foreach ($this7['lp'] as $id => $x) {
+            $rows[] = ['id' => $id] + $x + ['rate' => $x['v'] > 0 ? $x['c'] / $x['v'] : 0];
+        }
+        usort($rows, fn($a, $b) => $b['rate'] <=> $a['rate'] ?: $b['v'] <=> $a['v']);
+        $best = $rows[0];
+    ?>
+      <div class="lpcards">
+        <?php foreach ($rows as $i => $x):
+              $id = $x['id'];
+              $v  = $LPS[$id] ?? ['name' => 'Page ' . $id, 'path' => '/', 'colors' => [], 'live' => true];
+              $C  = $v['colors'] ?? [];
+              $win = $i === 0 && $x['c'] > 0 && count($rows) > 1;
+        ?>
+          <div class="lpcard <?= $win ? 'win' : '' ?>">
+            <a class="lpthumb" href="<?= htmlspecialchars($v['path']) ?>" target="_blank" rel="noopener">
+              <iframe src="<?= htmlspecialchars($v['path']) ?>?preview=1" loading="lazy" scrolling="no"
+                      title="<?= htmlspecialchars($v['name']) ?>" tabindex="-1"></iframe>
+            </a>
+            <div class="lpbody">
+              <div class="lphead">
+                <b><?= htmlspecialchars($v['name']) ?></b>
+                <?php if ($win): ?><span class="tag">Best rate</span><?php endif; ?>
+                <?php if (empty($v['live'])): ?><span class="tag tag--off">Paused</span><?php endif; ?>
+              </div>
+              <div class="lprate"><?= pct($x['c'], $x['v']) ?>%</div>
+              <div class="lpnums">
+                <?= number_format($x['v']) ?> saw it · <?= number_format($x['c']) ?> clicked
+              </div>
+            </div>
+          </div>
         <?php endforeach; ?>
-      </table>
-      <p style="font-size:.82rem;color:var(--muted);margin-top:.6rem">
-        Compare the rate, not the totals — the page with more visitors isn’t necessarily the better page.
+      </div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.8rem">
+        Compare the <b>rate</b>, not the totals — a page with more visitors isn’t necessarily the better page.
+        <?php if ($best['v'] < 100): ?>
+          These numbers are still small; give it a few hundred visitors before you call a winner.
+        <?php endif; ?>
       </p>
     <?php endif; ?>
 

@@ -1,13 +1,17 @@
 <?php
 /**
- * Admin — access approvals + landing page control.
+ * Admin — landing pages you can SEE, and who can see the numbers.
  *
- * Two jobs in one place:
- *   1. Who can see the report (approve / remove people).
- *   2. Which landing page is running, what colours it uses, and what it says.
+ * The first version of this page listed the landing pages as text: a name, a
+ * path, six hex fields. Nobody picks a page that way. People recognise a page by
+ * looking at it. So every page is now a card with a live thumbnail of the real
+ * thing (an iframe of the page itself, scaled down — not a screenshot that can
+ * go stale), a LIVE / PAUSED badge, and its own click-through rate. Editing
+ * colours redraws a preview as you drag the picker, so you never save blind.
  *
- * The email notification for access requests is a convenience; THIS page is the
- * source of truth, so a lost email can never leave someone locked out.
+ * Two jobs, still:
+ *   1. Which landing page is running, what colour it is, what it says.
+ *   2. Who can get in (approve / remove people).
  */
 
 require __DIR__ . '/auth.php';          // must be signed in
@@ -15,13 +19,34 @@ require_once __DIR__ . '/lp-lib.php';
 require_once __DIR__ . '/nav.php';
 
 $me = auth_user();
-if (!$me || !in_array(strtolower($me['email']), array_map('strtolower', AUTH_ADMINS), true)) {
+if (!auth_is_admin($me)) {
     http_response_code(403);
     exit('Not allowed.');
 }
 
 $notice = '';
 $LPS    = lp_variants();
+
+/** Views and clicks per landing page over the last 7 days — so each card can
+ *  show whether it is actually working, not just what colour it is. */
+function lp_stats7(): array {
+    $out  = [];
+    $from = (new DateTime('now', new DateTimeZone('UTC')))->modify('-6 days')->format('Y-m-d');
+
+    foreach (glob(__DIR__ . '/lgc-data/events-*.csv') ?: [] as $file) {
+        if (!($fh = @fopen($file, 'r'))) continue;
+        while (($row = fgetcsv($fh)) !== false) {
+            if (count($row) < 3) continue;
+            if (substr((string)$row[0], 0, 10) < $from) continue;
+            $lp = $row[6] ?? '01';                       // 7th column, added with the variants
+            if (!isset($out[$lp])) $out[$lp] = ['v' => 0, 'c' => 0];
+            if ($row[1] === 'view') $out[$lp]['v']++;
+            if ($row[1] === 'cta')  $out[$lp]['c']++;
+        }
+        fclose($fh);
+    }
+    return $out;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $what = (string)($_POST['do'] ?? '');
@@ -30,34 +55,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($what === 'user') {
         $email  = (string)($_POST['email'] ?? '');
         $action = (string)($_POST['action'] ?? '');
-        $users  = auth_users();
+        $u      = auth_find($email);
 
-        foreach ($users as $i => $u) {
-            if (strcasecmp($u['email'], $email) !== 0) continue;
-
+        if ($u) {
             if ($action === 'approve') {
-                $users[$i]['status']   = 'approved';
-                $users[$i]['approved'] = gmdate('Y-m-d H:i');
+                $u['status']   = 'approved';
+                $u['approved'] = gmdate('Y-m-d H:i');
+                auth_put($u);
                 $notice = htmlspecialchars($u['name']) . ' can now sign in.';
             } elseif ($action === 'remove') {
-                if (strcasecmp($u['email'], $me['email']) === 0) {   // never lock yourself out
-                    $notice = 'You cannot remove your own account.';
-                    break;
+                if (strcasecmp($u['email'], $me['email']) === 0) {
+                    $notice = 'You cannot remove your own account.';   // never lock yourself out
+                } else {
+                    auth_remove($u['email']);
+                    $notice = htmlspecialchars($email) . ' has been removed.';
                 }
-                array_splice($users, $i, 1);
-                $notice = htmlspecialchars($email) . ' has been removed.';
             }
-            auth_save_users($users);
-            break;
         }
     }
 
-    /* ---- A landing page ---- */
+    /* ---- Flip one page live / paused, without opening the editor ---- */
+    if ($what === 'toggle') {
+        $id = (string)($_POST['id'] ?? '');
+        if (isset($LPS[$id])) {
+            $LPS[$id]['live'] = empty($LPS[$id]['live']);
+            lp_save_variants($LPS);
+            $LPS    = lp_variants();
+            $notice = '“' . htmlspecialchars($LPS[$id]['name']) . '” is now '
+                    . ($LPS[$id]['live'] ? 'live to the public.' : 'paused — only you can see it.');
+        }
+    }
+
+    /* ---- Save a page ---- */
     if ($what === 'page') {
         $id = (string)($_POST['id'] ?? '');
         if (isset($LPS[$id])) {
             $LPS[$id]['live'] = !empty($_POST['live']);
-            $LPS[$id]['name'] = trim((string)($_POST['name'] ?? $LPS[$id]['name'])) ?: $LPS[$id]['name'];
+            $LPS[$id]['name'] = trim((string)($_POST['name'] ?? '')) ?: $LPS[$id]['name'];
             $LPS[$id]['note'] = trim((string)($_POST['note'] ?? ''));
 
             foreach (['hero_bg','hero_text','accent','accent_2','page_bg','ink'] as $k) {
@@ -68,8 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             foreach (array_keys($LPS[$id]['text']) as $k) {
                 if (isset($_POST['t_' . $k])) {
-                    // Copy is written by humans, not pasted from the web: strip tags,
-                    // but keep the few entities the design relies on (&nbsp;, &amp;).
+                    /* Copy is written by hand, not pasted from the web: strip tags. */
                     $LPS[$id]['text'][$k] = trim(strip_tags((string)$_POST['t_' . $k]));
                 }
             }
@@ -81,9 +114,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$stats   = lp_stats7();
 $users   = auth_users();
-$pending = array_filter($users, fn($u) => ($u['status'] ?? '') === 'pending');
-$active  = array_filter($users, fn($u) => ($u['status'] ?? '') === 'approved');
+$pending = array_values(array_filter($users, fn($u) => ($u['status'] ?? '') === 'pending'));
+$active  = array_values(array_filter($users, fn($u) => ($u['status'] ?? '') === 'approved'));
+$refused = array_values(array_filter($users, fn($u) => ($u['status'] ?? '') === 'declined'));
 
 $labels = [
     'eyebrow'         => 'Eyebrow (small line above the headline)',
@@ -103,8 +138,8 @@ $labels = [
 $swatches = [
     'hero_bg'   => 'Hero background',
     'hero_text' => 'Hero text',
-    'accent'    => 'Buttons (accent)',
-    'accent_2'  => 'Secondary accent',
+    'accent'    => 'Buttons',
+    'accent_2'  => 'Second accent',
     'page_bg'   => 'Page background',
     'ink'       => 'Body text',
 ];
@@ -112,160 +147,275 @@ $swatches = [
 <html lang="en-GB"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Admin — Luke Goulden</title>
+<title>Landing pages — Luke Goulden</title>
 <style>
-  :root{--teal:#1A3C34;--coral:#E05A3A;--sage:#84B59F;--off:#F7F5F0;--ink:#1E1E1E;--muted:#6b6b6b;--line:rgba(30,30,30,.12)}
+  :root{--teal:#1A3C34;--coral:#E05A3A;--sage:#84B59F;--off:#F7F5F0;--ink:#1E1E1E;
+        --muted:#6b6b6b;--line:rgba(30,30,30,.12)}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--off);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
-  .wrap{max-width:60rem;margin:0 auto;padding:2.5rem 1.25rem 6rem}
-  h1{font-size:1.7rem;font-weight:800;color:var(--teal);letter-spacing:-.015em;margin:0 0 .25rem}
-  .sub{color:var(--muted);font-size:.9rem;margin:0 0 2.5rem}
+  body{margin:0;background:var(--off);color:var(--ink);
+       font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:74rem;margin:0 auto;padding:2.5rem 1.25rem 6rem}
+  h1{font-size:1.8rem;font-weight:800;color:var(--teal);letter-spacing:-.015em;margin:0 0 .25rem}
+  .sub{color:var(--muted);font-size:.92rem;margin:0 0 2rem;max-width:44rem}
   h2{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);
-     margin:2.5rem 0 .9rem;padding-top:1.5rem;border-top:1px solid var(--line)}
-  h2:first-of-type{border-top:0;padding-top:0}
+     margin:3rem 0 1rem;padding-top:1.75rem;border-top:1px solid var(--line);font-weight:800}
+  h2:first-of-type{border-top:0;padding-top:0;margin-top:0}
+  .notice{background:rgba(132,181,159,.2);color:#2f6a55;padding:.85rem 1.1rem;border-radius:10px;
+          font-size:.9rem;margin-bottom:1.75rem;font-weight:600}
 
-  .row{display:flex;align-items:center;gap:1rem;background:#fff;border:1px solid var(--line);
-       border-radius:12px;padding:1rem 1.15rem;margin-bottom:.6rem;flex-wrap:wrap}
-  .row .who{flex:1;min-width:12rem}
-  .row .who b{display:block;color:var(--teal)}
-  .row .who span{font-size:.82rem;color:var(--muted)}
-  button{border:0;cursor:pointer;font:inherit;font-weight:700;font-size:.7rem;letter-spacing:.1em;
-         text-transform:uppercase;padding:.6rem 1rem;border-radius:4px}
-  .ok{background:var(--coral);color:#fff}
-  .no{background:transparent;color:var(--teal);border:1px solid var(--line)}
-  .pill{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;
-        padding:.2rem .5rem;border-radius:99px;background:rgba(132,181,159,.2);color:#2f6a55}
-  .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:1.75rem;
-         text-align:center;color:var(--muted);font-size:.9rem}
-  .notice{background:rgba(132,181,159,.18);color:#2f6a55;padding:.8rem 1rem;border-radius:8px;
-          font-size:.88rem;margin-bottom:1.5rem}
+  /* ---- Landing page cards ---------------------------------------------- */
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(21rem,1fr));gap:1.5rem}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+        display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .card.paused{opacity:.82}
 
-  /* Landing pages */
-  .page{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:1rem;overflow:hidden}
-  .page > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:1rem;
-                  padding:1.1rem 1.25rem;flex-wrap:wrap}
-  .page > summary::-webkit-details-marker{display:none}
-  .page .title{flex:1;min-width:14rem}
-  .page .title b{display:block;color:var(--teal);font-size:1rem}
-  .page .title span{font-size:.8rem;color:var(--muted)}
-  .dots{display:flex;gap:.25rem}
-  .dot{width:1.1rem;height:1.1rem;border-radius:99px;border:1px solid rgba(0,0,0,.12)}
-  .state{font-size:.62rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
-         padding:.28rem .6rem;border-radius:99px}
-  .state.on{background:rgba(132,181,159,.25);color:#2f6a55}
-  .state.off{background:rgba(30,30,30,.07);color:var(--muted)}
-  .body{padding:0 1.25rem 1.5rem;border-top:1px solid var(--line)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.9rem;margin:1.25rem 0}
-  .fld{display:block}
-  .fld label{display:block;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
-             color:var(--muted);font-weight:700;margin-bottom:.3rem}
-  .fld input[type=color]{width:100%;height:2.6rem;border:1px solid var(--line);border-radius:8px;
-                         background:#fff;padding:.2rem;cursor:pointer}
-  .fld input[type=text], .fld textarea{width:100%;padding:.6rem .7rem;border:1px solid var(--line);
-                                       border-radius:8px;font:inherit;font-size:.9rem;background:#fff}
+  /* A live iframe of the real page, scaled down. Not a screenshot — it cannot
+     go stale, and a paused page still previews for you because you're signed in. */
+  .thumb{position:relative;display:block;height:15rem;overflow:hidden;background:#e9e6e0;
+         border-bottom:1px solid var(--line);text-decoration:none}
+  .thumb iframe{width:1440px;height:1500px;border:0;
+                transform:scale(.26);transform-origin:top left;pointer-events:none}
+  .thumb .veil{position:absolute;inset:0;background:transparent;transition:background .15s}
+  .thumb:hover .veil{background:rgba(26,60,52,.14)}
+  .thumb .open{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);
+        background:rgba(255,255,255,.96);color:var(--teal);border-radius:99px;
+        padding:.55rem 1rem;font-size:.68rem;font-weight:800;letter-spacing:.1em;
+        text-transform:uppercase;opacity:0;transition:.15s;white-space:nowrap}
+  .thumb:hover .open{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  .badge{position:absolute;top:.75rem;left:.75rem;z-index:2;font-size:.6rem;font-weight:800;
+         letter-spacing:.12em;text-transform:uppercase;padding:.3rem .6rem;border-radius:99px;
+         box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .badge.on{background:#84B59F;color:#10241f}
+  .badge.off{background:#1E1E1E;color:#fff}
+  .badge.home{background:#fff;color:var(--teal);left:auto;right:.75rem}
+
+  .meta{padding:1.1rem 1.15rem;display:flex;flex-direction:column;gap:.75rem;flex:1}
+  .meta .top{display:flex;align-items:flex-start;gap:.75rem}
+  .meta b{color:var(--teal);font-size:1.02rem;line-height:1.3}
+  .meta .path{font-size:.75rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .meta .note{font-size:.84rem;color:var(--muted);margin:0}
+  .dots{display:flex;gap:.2rem;margin-left:auto;flex:none}
+  .dot{width:.85rem;height:.85rem;border-radius:99px;border:1px solid rgba(0,0,0,.12)}
+
+  .nums{display:flex;gap:1.25rem;padding-top:.5rem;border-top:1px solid var(--line)}
+  .nums div{line-height:1.2}
+  .nums .n{font-size:1.1rem;font-weight:800;color:var(--teal);font-variant-numeric:tabular-nums}
+  .nums .l{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .nums .n.zero{color:#b9b6b0}
+
+  .acts{display:flex;gap:.5rem;padding:0 1.15rem 1.15rem;flex-wrap:wrap}
+  button,.btn{border:0;cursor:pointer;font:inherit;font-weight:800;font-size:.68rem;letter-spacing:.1em;
+              text-transform:uppercase;padding:.62rem .95rem;border-radius:7px;text-decoration:none;
+              display:inline-flex;align-items:center;gap:.35rem}
+  .primary{background:var(--coral);color:#fff}
+  .ghost{background:transparent;color:var(--teal);border:1px solid var(--line)}
+  .ghost:hover{background:rgba(26,60,52,.05)}
+
+  /* ---- Editor ----------------------------------------------------------- */
+  dialog::backdrop{background:rgba(15,38,33,.55)}
+  dialog{border:0;border-radius:18px;padding:0;width:min(52rem,94vw);max-height:92vh;
+         box-shadow:0 30px 90px rgba(0,0,0,.35)}
+  .ed{display:flex;flex-direction:column;max-height:92vh}
+  .ed header{display:flex;align-items:center;gap:1rem;padding:1.25rem 1.5rem;
+             border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:3}
+  .ed header b{color:var(--teal);font-size:1.05rem;flex:1}
+  .ed .close{background:transparent;border:1px solid var(--line);color:var(--muted);
+             border-radius:99px;width:2rem;height:2rem;padding:0;justify-content:center;font-size:1rem}
+  .ed .scroll{overflow:auto;padding:1.5rem}
+
+  /* Live preview — redraws as you drag a colour picker, so nothing is saved blind. */
+  .prev{border-radius:12px;overflow:hidden;border:1px solid var(--line);margin-bottom:1.5rem}
+  .prev .hero{padding:1.5rem 1.4rem}
+  .prev .eyebrow{font-size:.6rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;margin-bottom:.5rem}
+  .prev .h{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:0}
+  .prev .h em{display:block;font-style:normal;font-size:.66em;font-weight:600;margin-top:.25rem}
+  .prev .s{font-size:.82rem;margin:.6rem 0 1rem;opacity:.78}
+  .prev .b{display:inline-block;padding:.6rem 1rem;border-radius:6px;font-size:.66rem;
+           font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .prev .page{padding:1rem 1.4rem;font-size:.8rem}
+
+  .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:.85rem;margin-bottom:1.5rem}
+  .fld label{display:block;font-size:.63rem;letter-spacing:.1em;text-transform:uppercase;
+             color:var(--muted);font-weight:800;margin-bottom:.35rem}
+  .fld input[type=color]{width:100%;height:2.5rem;border:1px solid var(--line);border-radius:8px;
+                         background:#fff;padding:.18rem;cursor:pointer}
+  .fld input[type=text],.fld textarea{width:100%;padding:.62rem .7rem;border:1px solid var(--line);
+                                      border-radius:8px;font:inherit;font-size:.9rem;background:#fff}
   .fld textarea{min-height:4.5rem;resize:vertical}
   .texts{display:grid;gap:.9rem;grid-template-columns:1fr 1fr}
   .texts .wide{grid-column:1/-1}
-  .acts{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:1.25rem}
-  .acts a{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-          color:var(--teal);text-decoration:none;border-bottom:1px solid var(--line)}
-  .live-toggle{display:inline-flex;align-items:center;gap:.5rem;font-size:.75rem;font-weight:700;
-               letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
-  @media(max-width:40em){ .texts{grid-template-columns:1fr} }
+  .ed footer{display:flex;align-items:center;gap:.75rem;padding:1.1rem 1.5rem;
+             border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff;flex-wrap:wrap}
+  .switch{display:inline-flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:800;
+          letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-right:auto}
+
+  /* ---- People ----------------------------------------------------------- */
+  .row{display:flex;align-items:center;gap:1rem;background:#fff;border:1px solid var(--line);
+       border-radius:12px;padding:.95rem 1.15rem;margin-bottom:.6rem;flex-wrap:wrap}
+  .row .who{flex:1;min-width:12rem}
+  .row .who b{display:block;color:var(--teal)}
+  .row .who span{font-size:.82rem;color:var(--muted)}
+  .row .who .mail{font-size:.68rem;color:#a33d24;font-weight:700}
+  .pill{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;font-weight:800;
+        padding:.25rem .55rem;border-radius:99px;background:rgba(132,181,159,.22);color:#2f6a55}
+  .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:1.75rem;
+         text-align:center;color:var(--muted);font-size:.9rem}
+
+  @media(max-width:40em){ .texts{grid-template-columns:1fr} .thumb{height:12rem} }
 </style></head><body>
 
 <?php lgc_nav('admin'); ?>
 
 <div class="wrap">
-  <h1>Admin</h1>
-  <p class="sub">Landing pages and who can see the numbers. One login covers the report, the pages and this page.</p>
+  <h1>Landing pages</h1>
+  <p class="sub">
+    Four versions of the same page. Point a campaign at whichever one suits it, and pause the rest.
+    A paused page returns “not found” to the public — you can still open it yourself to check the work.
+  </p>
 
   <?php if ($notice): ?><div class="notice"><?= $notice ?></div><?php endif; ?>
 
-  <h2 id="pages">Landing pages</h2>
-  <p style="margin:-.4rem 0 1.25rem;color:var(--muted);font-size:.86rem">
-    Paused pages return “not found” to the public, but you can still open them yourself to check the work.
-    Every page reports its own click-through rate, so you can see which one actually wins.
-  </p>
+  <div class="cards">
+  <?php foreach ($LPS as $id => $v):
+      $C  = $v['colors'];
+      $s  = $stats[$id] ?? ['v' => 0, 'c' => 0];
+      $ct = $s['v'] > 0 ? round($s['c'] / $s['v'] * 100, 1) : 0;
+  ?>
+    <div class="card <?= $v['live'] ? '' : 'paused' ?>">
+      <a class="thumb" href="<?= htmlspecialchars($v['path']) ?>" target="_blank" rel="noopener"
+         aria-label="Open <?= htmlspecialchars($v['name']) ?> in a new tab">
+        <span class="badge <?= $v['live'] ? 'on' : 'off' ?>"><?= $v['live'] ? 'Live' : 'Paused' ?></span>
+        <?php if ($v['path'] === '/'): ?><span class="badge home">Homepage</span><?php endif; ?>
+        <iframe src="<?= htmlspecialchars($v['path']) ?>?preview=1" loading="lazy" scrolling="no"
+                title="Preview of <?= htmlspecialchars($v['name']) ?>" tabindex="-1"></iframe>
+        <span class="veil"></span>
+        <span class="open">Open the real page ↗</span>
+      </a>
 
-  <?php foreach ($LPS as $id => $v): $C = $v['colors']; ?>
-    <details class="page" <?= $v['live'] ? 'open' : '' ?>>
-      <summary>
-        <span class="dots">
-          <?php foreach (['hero_bg','accent','accent_2','page_bg'] as $k): ?>
-            <span class="dot" style="background:<?= htmlspecialchars($C[$k]) ?>"></span>
-          <?php endforeach; ?>
-        </span>
-        <span class="title">
-          <b><?= htmlspecialchars($v['name']) ?></b>
-          <span><?= htmlspecialchars($v['path']) ?> · <?= htmlspecialchars($v['note'] ?? '') ?></span>
-        </span>
-        <span class="state <?= $v['live'] ? 'on' : 'off' ?>"><?= $v['live'] ? 'Live' : 'Paused' ?></span>
-      </summary>
+      <div class="meta">
+        <div class="top">
+          <div>
+            <b><?= htmlspecialchars($v['name']) ?></b>
+            <div class="path"><?= htmlspecialchars($v['path']) ?></div>
+          </div>
+          <span class="dots">
+            <?php foreach (['hero_bg','accent','accent_2','page_bg'] as $k): ?>
+              <span class="dot" style="background:<?= htmlspecialchars($C[$k]) ?>"></span>
+            <?php endforeach; ?>
+          </span>
+        </div>
 
-      <form class="body" method="post">
+        <p class="note"><?= htmlspecialchars($v['note'] ?? '') ?></p>
+
+        <div class="nums">
+          <div><div class="n <?= $s['v'] ? '' : 'zero' ?>"><?= number_format($s['v']) ?></div><div class="l">Views · 7d</div></div>
+          <div><div class="n <?= $s['c'] ? '' : 'zero' ?>"><?= number_format($s['c']) ?></div><div class="l">Clicks</div></div>
+          <div><div class="n <?= $s['c'] ? '' : 'zero' ?>"><?= $ct ?>%</div><div class="l">Click rate</div></div>
+        </div>
+      </div>
+
+      <div class="acts">
+        <button class="primary" type="button" data-edit="<?= htmlspecialchars($id) ?>">Edit</button>
+        <form method="post" style="display:contents">
+          <input type="hidden" name="do" value="toggle">
+          <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
+          <button class="ghost" type="submit"><?= $v['live'] ? 'Pause' : 'Go live' ?></button>
+        </form>
+        <a class="btn ghost" href="/report/?lp=<?= htmlspecialchars($id) ?>">Numbers</a>
+      </div>
+    </div>
+
+    <!-- Editor for this page -->
+    <dialog id="ed-<?= htmlspecialchars($id) ?>">
+      <form class="ed" method="post">
         <input type="hidden" name="do" value="page">
         <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
 
-        <div class="grid">
-          <?php foreach ($swatches as $k => $label): ?>
+        <header>
+          <b>Edit — <?= htmlspecialchars($v['name']) ?></b>
+          <button class="close" type="button" data-close="<?= htmlspecialchars($id) ?>" aria-label="Close">✕</button>
+        </header>
+
+        <div class="scroll">
+          <div class="prev" data-prev="<?= htmlspecialchars($id) ?>">
+            <div class="hero" style="background:<?= $C['hero_bg'] ?>;color:<?= $C['hero_text'] ?>">
+              <div class="eyebrow" style="color:<?= $C['accent_2'] ?>"><?= htmlspecialchars(html_entity_decode($v['text']['eyebrow'])) ?></div>
+              <p class="h">
+                <?= htmlspecialchars(html_entity_decode($v['text']['headline'])) ?>
+                <em style="color:<?= $C['accent_2'] ?>"><?= htmlspecialchars(html_entity_decode($v['text']['headline_accent'])) ?></em>
+              </p>
+              <p class="s"><?= htmlspecialchars(html_entity_decode($v['text']['sub'])) ?></p>
+              <span class="b" style="background:<?= $C['accent'] ?>;color:#fff"><?= htmlspecialchars($v['text']['cta_label']) ?></span>
+            </div>
+            <div class="page" style="background:<?= $C['page_bg'] ?>;color:<?= $C['ink'] ?>">
+              Body text sits on the page background — check it stays readable.
+            </div>
+          </div>
+
+          <div class="fields">
+            <?php foreach ($swatches as $k => $label): ?>
+              <span class="fld">
+                <label for="<?= $id . $k ?>"><?= $label ?></label>
+                <input id="<?= $id . $k ?>" type="color" name="c_<?= $k ?>"
+                       data-c="<?= $k ?>" value="<?= htmlspecialchars(strtolower($C[$k])) ?>">
+              </span>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="texts">
             <span class="fld">
-              <label for="<?= $id . $k ?>"><?= $label ?></label>
-              <input id="<?= $id . $k ?>" type="color" name="c_<?= $k ?>" value="<?= htmlspecialchars(strtolower($C[$k])) ?>">
+              <label for="<?= $id ?>name">Name (only you see this)</label>
+              <input id="<?= $id ?>name" type="text" name="name" value="<?= htmlspecialchars($v['name']) ?>">
             </span>
-          <?php endforeach; ?>
+            <span class="fld">
+              <label for="<?= $id ?>note">When to use it</label>
+              <input id="<?= $id ?>note" type="text" name="note" value="<?= htmlspecialchars($v['note'] ?? '') ?>">
+            </span>
+
+            <?php foreach ($v['text'] as $k => $val):
+                  $wide = in_array($k, ['sub','band_body','closing_body','headline'], true); ?>
+              <span class="fld <?= $wide ? 'wide' : '' ?>">
+                <label for="<?= $id . $k ?>"><?= $labels[$k] ?? $k ?></label>
+                <?php if ($wide): ?>
+                  <textarea id="<?= $id . $k ?>" name="t_<?= $k ?>" data-t="<?= $k ?>"><?= htmlspecialchars($val) ?></textarea>
+                <?php else: ?>
+                  <input id="<?= $id . $k ?>" type="text" name="t_<?= $k ?>" data-t="<?= $k ?>" value="<?= htmlspecialchars($val) ?>">
+                <?php endif; ?>
+              </span>
+            <?php endforeach; ?>
+          </div>
         </div>
 
-        <div class="texts">
-          <span class="fld">
-            <label for="<?= $id ?>name">Name (only you see this)</label>
-            <input id="<?= $id ?>name" type="text" name="name" value="<?= htmlspecialchars($v['name']) ?>">
-          </span>
-          <span class="fld">
-            <label for="<?= $id ?>note">When to use it</label>
-            <input id="<?= $id ?>note" type="text" name="note" value="<?= htmlspecialchars($v['note'] ?? '') ?>">
-          </span>
-
-          <?php foreach ($v['text'] as $k => $val):
-                $wide = in_array($k, ['sub','band_body','closing_body','headline'], true); ?>
-            <span class="fld <?= $wide ? 'wide' : '' ?>">
-              <label for="<?= $id . $k ?>"><?= $labels[$k] ?? $k ?></label>
-              <?php if ($wide): ?>
-                <textarea id="<?= $id . $k ?>" name="t_<?= $k ?>"><?= htmlspecialchars($val) ?></textarea>
-              <?php else: ?>
-                <input id="<?= $id . $k ?>" type="text" name="t_<?= $k ?>" value="<?= htmlspecialchars($val) ?>">
-              <?php endif; ?>
-            </span>
-          <?php endforeach; ?>
-        </div>
-
-        <div class="acts">
-          <label class="live-toggle">
+        <footer>
+          <label class="switch">
             <input type="checkbox" name="live" value="1" <?= $v['live'] ? 'checked' : '' ?>>
             Live to the public
           </label>
-          <button class="ok" type="submit">Save page</button>
-          <a href="<?= htmlspecialchars($v['path']) ?>" target="_blank" rel="noopener">Open page ↗</a>
-          <a href="/report/?lp=<?= htmlspecialchars($id) ?>">See its numbers</a>
-        </div>
+          <button class="ghost" type="button" data-close="<?= htmlspecialchars($id) ?>">Cancel</button>
+          <button class="primary" type="submit">Save page</button>
+        </footer>
       </form>
-    </details>
+    </dialog>
   <?php endforeach; ?>
+  </div>
 
   <h2>Waiting for you<?= $pending ? ' (' . count($pending) . ')' : '' ?></h2>
   <?php if (!$pending): ?>
-    <div class="empty">Nobody is waiting. New requests appear here — you don’t need the email.</div>
+    <div class="empty">Nobody is waiting. New requests appear here — you don’t need the email to arrive.</div>
   <?php else: foreach ($pending as $u): ?>
     <div class="row">
       <div class="who">
         <b><?= htmlspecialchars($u['name']) ?></b>
-        <span><?= htmlspecialchars($u['email']) ?></span>
+        <span><?= htmlspecialchars($u['email']) ?> · asked <?= htmlspecialchars((string)($u['added'] ?? '')) ?></span>
+        <?php if (isset($u['mailed']) && $u['mailed'] === false): ?>
+          <span class="mail">The email to you failed — approve here instead.</span>
+        <?php endif; ?>
       </div>
       <form method="post" style="display:flex;gap:.5rem">
         <input type="hidden" name="do" value="user">
         <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
-        <button class="ok" name="action" value="approve" type="submit">Approve</button>
-        <button class="no" name="action" value="remove" type="submit">Decline</button>
+        <button class="primary" name="action" value="approve" type="submit">Approve</button>
+        <button class="ghost" name="action" value="remove" type="submit">Decline</button>
       </form>
     </div>
   <?php endforeach; endif; ?>
@@ -283,10 +433,84 @@ $swatches = [
         <form method="post">
           <input type="hidden" name="do" value="user">
           <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
-          <button class="no" name="action" value="remove" type="submit">Remove access</button>
+          <button class="ghost" name="action" value="remove" type="submit">Remove access</button>
         </form>
       <?php endif; ?>
     </div>
   <?php endforeach; ?>
+
+  <?php if ($refused): ?>
+    <h2>Declined (<?= count($refused) ?>)</h2>
+    <?php foreach ($refused as $u): ?>
+      <div class="row">
+        <div class="who">
+          <b><?= htmlspecialchars($u['name']) ?></b>
+          <span><?= htmlspecialchars($u['email']) ?> · cannot sign in</span>
+        </div>
+        <form method="post" style="display:flex;gap:.5rem">
+          <input type="hidden" name="do" value="user">
+          <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
+          <button class="ghost" name="action" value="approve" type="submit">Let them in after all</button>
+          <button class="ghost" name="action" value="remove" type="submit">Remove</button>
+        </form>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 </div>
+
+<script>
+  /* Open / close the editors. <dialog> gives us the focus trap and Esc for free. */
+  document.querySelectorAll('[data-edit]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('ed-' + btn.dataset.edit).showModal();
+    });
+  });
+  document.querySelectorAll('[data-close]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('ed-' + btn.dataset.close).close();
+    });
+  });
+
+  /* Redraw the preview as the colours and copy change. The point is that nobody
+     saves a scheme they haven't seen — the old page made you guess from six hex
+     values and then reload the site to find out. */
+  document.querySelectorAll('.ed').forEach(function (form) {
+    var prev = form.querySelector('[data-prev]');
+    if (!prev) return;
+
+    var hero    = prev.querySelector('.hero'),
+        page    = prev.querySelector('.page'),
+        eyebrow = prev.querySelector('.eyebrow'),
+        head    = prev.querySelector('.h'),
+        accent  = prev.querySelector('.h em'),
+        sub     = prev.querySelector('.s'),
+        button  = prev.querySelector('.b');
+
+    function colour(name) {
+      var el = form.querySelector('[data-c="' + name + '"]');
+      return el ? el.value : '#000000';
+    }
+    function text(name) {
+      var el = form.querySelector('[data-t="' + name + '"]');
+      return el ? el.value : '';
+    }
+    function redraw() {
+      hero.style.background   = colour('hero_bg');
+      hero.style.color        = colour('hero_text');
+      eyebrow.style.color     = colour('accent_2');
+      accent.style.color      = colour('accent_2');
+      button.style.background = colour('accent');
+      page.style.background   = colour('page_bg');
+      page.style.color        = colour('ink');
+
+      eyebrow.textContent = text('eyebrow');
+      head.childNodes[0].nodeValue = text('headline') + ' ';
+      accent.textContent  = text('headline_accent');
+      sub.textContent     = text('sub');
+      button.textContent  = text('cta_label');
+    }
+
+    form.addEventListener('input', redraw);
+  });
+</script>
 </body></html>
