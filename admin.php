@@ -30,6 +30,24 @@ $uploadError = '';
 $resetLink   = '';               // set when an admin generates a reset link to copy
 $LPS         = lp_variants();
 
+/**
+ * Show stored copy as plain text in an editor field.
+ *
+ * The copy is stored HTML-ready (the templates print it unescaped, so an "&" is
+ * stored as "&amp;" and a non-breaking space as "&nbsp;"). A human editing the
+ * text should never see those codes — so we decode to plain text first, then
+ * escape once for safe embedding in the form field. The reverse (plain text →
+ * HTML-ready) happens on save, in ed_store().
+ */
+function ed_show($v): string {
+    return htmlspecialchars(html_entity_decode((string)$v, ENT_QUOTES | ENT_HTML5), ENT_QUOTES);
+}
+
+/** Turn what a human typed back into HTML-ready copy for storage. */
+function ed_store($v): string {
+    return trim(htmlspecialchars(strip_tags((string)$v), ENT_QUOTES));
+}
+
 /** Refuse anything an admin-only action was asked to do by a non-admin. */
 function lp_admin_guard(bool $isAdmin): void {
     if (!$isAdmin) {
@@ -225,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 foreach (['name', 'result', 'weeks'] as $f) {
                     if (isset($_POST['res_' . $f . '_' . $i])) {
-                        $LPS[$id]['results'][$i][$f] = trim(strip_tags((string)$_POST['res_' . $f . '_' . $i]));
+                        $LPS[$id]['results'][$i][$f] = ed_store($_POST['res_' . $f . '_' . $i]);
                     }
                 }
             }
@@ -239,8 +257,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             foreach (array_keys($LPS[$id]['text']) as $k) {
                 if (isset($_POST['t_' . $k])) {
-                    /* Copy is written by hand, not pasted from the web: strip tags. */
-                    $LPS[$id]['text'][$k] = trim(strip_tags((string)$_POST['t_' . $k]));
+                    /* Store HTML-ready copy from the plain text the human typed. */
+                    $LPS[$id]['text'][$k] = ed_store($_POST['t_' . $k]);
                 }
             }
             if (!lp_save_variants($LPS)) {
@@ -535,7 +553,7 @@ $swatches = [
                 <em style="color:<?= $C['accent_2'] ?>"><?= htmlspecialchars(html_entity_decode($v['text']['headline_accent'])) ?></em>
               </p>
               <p class="s"><?= htmlspecialchars(html_entity_decode($v['text']['sub'])) ?></p>
-              <span class="b" style="background:<?= $C['accent'] ?>;color:#fff"><?= htmlspecialchars($v['text']['cta_label']) ?></span>
+              <span class="b" style="background:<?= $C['accent'] ?>;color:#fff"><?= htmlspecialchars(html_entity_decode($v['text']['cta_label'])) ?></span>
             </div>
             <div class="page" style="background:<?= $C['page_bg'] ?>;color:<?= $C['ink'] ?>">
               Body text sits on the page background — check it stays readable.
@@ -586,9 +604,9 @@ $swatches = [
                     </option>
                   <?php endforeach; ?>
                 </select>
-                <input type="text" name="res_name_<?= $i ?>"   value="<?= htmlspecialchars($r['name']) ?>"   placeholder="Name">
-                <input type="text" name="res_result_<?= $i ?>" value="<?= htmlspecialchars($r['result']) ?>" placeholder="Result">
-                <input type="text" name="res_weeks_<?= $i ?>"  value="<?= htmlspecialchars($r['weeks']) ?>"  placeholder="Timeframe">
+                <input type="text" name="res_name_<?= $i ?>"   value="<?= ed_show($r['name']) ?>"   placeholder="Name">
+                <input type="text" name="res_result_<?= $i ?>" value="<?= ed_show($r['result']) ?>" placeholder="Result">
+                <input type="text" name="res_weeks_<?= $i ?>"  value="<?= ed_show($r['weeks']) ?>"  placeholder="Timeframe">
               </div>
             <?php endforeach; ?>
           </div>
@@ -614,9 +632,9 @@ $swatches = [
               <span class="fld <?= $wide ? 'wide' : '' ?>">
                 <label for="<?= $id . $k ?>"><?= $labels[$k] ?? $k ?></label>
                 <?php if ($wide): ?>
-                  <textarea id="<?= $id . $k ?>" name="t_<?= $k ?>" data-t="<?= $k ?>"><?= htmlspecialchars($val) ?></textarea>
+                  <textarea id="<?= $id . $k ?>" name="t_<?= $k ?>" data-t="<?= $k ?>"><?= ed_show($val) ?></textarea>
                 <?php else: ?>
-                  <input id="<?= $id . $k ?>" type="text" name="t_<?= $k ?>" data-t="<?= $k ?>" value="<?= htmlspecialchars($val) ?>">
+                  <input id="<?= $id . $k ?>" type="text" name="t_<?= $k ?>" data-t="<?= $k ?>" value="<?= ed_show($val) ?>">
                 <?php endif; ?>
               </span>
             <?php endforeach; ?>
