@@ -65,6 +65,10 @@
   .ll-rating .ll-stars{color:var(--lg-sage);letter-spacing:.18em}
   .ll-rating b{color:var(--lg-offwhite);font-weight:var(--fw-bold)}
 
+  /* Hero portrait: single subject, no overlay card.
+     Framed on Luke (centre 20%) so the face — the strongest trust signal
+     above the fold — is never obscured. Proof lives in the stats row,
+     the Trustpilot line, and the Results grid below. */
   .ll-hero-media{
     position:relative;min-height:34rem;border-radius:var(--radius-xl) var(--radius-xl) 0 0;overflow:hidden;
     background:url('assets/luke-hero.jpg') center 20%/cover no-repeat;
@@ -73,26 +77,6 @@
     content:"";position:absolute;inset:0;
     background:linear-gradient(180deg,rgba(16,36,32,0) 40%,rgba(16,36,32,.62) 100%);
     pointer-events:none;
-  }
-  .ll-ba{
-    position:absolute;top:var(--space-lg);right:var(--space-lg);z-index:2;width:14.5rem;
-    background:var(--surface-card);color:var(--text-body);
-    border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-lift);
-  }
-  .ll-ba-img{position:relative}
-  .ll-ba-img img{width:100%;height:11rem;object-fit:cover}
-  .ll-ba-img .ll-lbl{position:absolute;inset:auto 0 0 0;display:flex}
-  .ll-ba-img .ll-lbl span{
-    flex:1;text-align:center;font-size:.58rem;font-weight:var(--fw-bold);letter-spacing:var(--tr-caps);
-    text-transform:uppercase;color:var(--lg-offwhite);background:var(--lg-overlay-teal);padding:.4rem 0;
-  }
-  .ll-ba-meta{padding:var(--space-md) var(--space-md) var(--space-sm);text-align:center}
-  .ll-ba-meta .ll-nm{font-size:.66rem;font-weight:var(--fw-bold);letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-muted)}
-  .ll-ba-meta .ll-big{font-weight:var(--fw-extrabold);font-size:var(--fs-2xl);line-height:1;color:var(--lg-teal);margin:var(--space-2xs) 0;letter-spacing:-.02em}
-  .ll-ba-meta .ll-wk{font-size:.6rem;font-weight:var(--fw-semibold);letter-spacing:var(--tr-caps);text-transform:uppercase;color:var(--text-muted)}
-  .ll-ba-quote{
-    border-top:var(--border-hairline);margin:0;padding:var(--space-sm) var(--space-md) var(--space-md);
-    font-size:.82rem;line-height:var(--lh-snug);color:var(--lg-teal);font-weight:var(--fw-medium);text-align:center;
   }
 
   /* ---- Sound familiar ----------------------------------------- */
@@ -220,7 +204,6 @@
     .ll-imagine-grid{grid-template-columns:1fr 1fr}
     .ll-results-grid{grid-template-columns:1fr 1fr}
     .ll-stats{gap:var(--space-xl)}
-    .ll-ba{position:static;width:auto;margin:var(--space-md)}
   }
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto}
@@ -270,20 +253,7 @@
           <span><b>Excellent</b> · rated 4.9 out of 5 from 100+ reviews on Trustpilot</span>
         </div>
       </div>
-      <div class="ll-hero-media">
-        <figure class="ll-ba" style="margin:0">
-          <div class="ll-ba-img">
-            <img src="assets/tf-helen.jpg" alt="Helen — before and after her 12-week programme">
-            <div class="ll-lbl"><span>Before</span><span>After</span></div>
-          </div>
-          <div class="ll-ba-meta">
-            <div class="ll-nm">Helen</div>
-            <div class="ll-big">−11kg</div>
-            <div class="ll-wk">12 weeks</div>
-          </div>
-          <figcaption class="ll-ba-quote">“This is the best shape I’ve been in for years.”</figcaption>
-        </figure>
-      </div>
+      <div class="ll-hero-media" role="img" aria-label="Luke Goulden, online health and fitness coach"></div>
     </div>
   </div>
 </section>
