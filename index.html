@@ -26,6 +26,12 @@
     border-bottom:var(--border-hairline);
   }
   .ll-nav{display:flex;align-items:center;justify-content:space-between;gap:var(--space-lg);min-height:4.75rem}
+
+  /* Anchor offset — the header is sticky (4.75rem), so without this every
+     in-page link parks its target underneath it. Most visible on the thin
+     Reviews bar, which would land fully hidden and read as a broken link. */
+  html{scroll-padding-top:6.25rem}
+  section[id]{scroll-margin-top:6.25rem}
   .ll-brand{display:inline-flex;align-items:center;gap:var(--space-sm);color:var(--lg-teal)}
   .ll-brand svg{height:1.45rem;width:auto}
   .ll-brand .ll-wordmark{
