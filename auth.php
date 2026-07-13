@@ -39,6 +39,11 @@ function auth_logout(): void {
     session_destroy();
 }
 
+/* Keep the bootstrap admins in charge on every load. Cheap, and it means the
+   site can never be left with no admin — and it upgrades the account that signed
+   up before roles existed (e.g. contact@lukegoulden.com) to an approved admin. */
+auth_ensure_admins();
+
 /* ---------- form posts ---------------------------------------------------- */
 
 $authError  = '';
@@ -68,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
             }
 
             if ($u && ($u['status'] ?? '') === 'pending') {
-                $authError = 'That account is still waiting for Pedro to approve it.';
+                $authError = 'That account is still waiting to be approved.';
             } elseif ($u && ($u['status'] ?? '') === 'declined') {
                 $authError = 'That account was declined.';
             } else {
@@ -83,6 +88,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
     }
 
     /* ---- sign up ---- */
+    /* ---- forgot password ---- */
+    if ($_POST['lgc_action'] === 'forgot') {
+        $showTab = 'forgot';
+        $email   = strtolower(trim((string)($_POST['email'] ?? '')));
+        $u       = $email !== '' ? auth_find($email) : null;
+
+        /* Only approved accounts can reset — a pending/declined one has nothing
+           to sign into yet. We still show the SAME message either way, so this
+           form can't be used to discover which emails have accounts. */
+        if ($u && ($u['status'] ?? '') === 'approved') {
+            auth_notify_reset($u, auth_new_token($u['email'], 'reset'));
+        }
+        $authNotice = 'If there’s an account for that email, a reset link is on its way. '
+                    . 'The link works once and expires in two hours.';
+    }
+
     if ($_POST['lgc_action'] === 'signup') {
         $showTab = 'signup';
         $name    = trim((string)($_POST['name'] ?? ''));
@@ -99,20 +120,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
         } elseif (auth_find($email)) {
             $authError = 'There is already an account or a pending request for that email.';
         } else {
-            /* Pedro's own address is the bootstrap admin — see the header note. */
-            $isBoss = strcasecmp($email, AUTH_ADMIN_EMAIL) === 0;
+            /* Bootstrap admins (you and Luke) are approved on the spot and made
+               admins — see auth-lib.php. Everyone else waits for an admin. */
+            $isBoss = auth_is_bootstrap_admin($email);
 
             $user = [
                 'email'  => $email,
                 'name'   => $name,
                 'hash'   => password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12]),
                 'status' => $isBoss ? 'approved' : 'pending',
+                'role'   => $isBoss ? 'admin' : 'user',
                 'added'  => gmdate('Y-m-d H:i'),
                 'mailed' => null,
             ];
 
             if (!auth_put($user)) {
-                $authError = 'Could not save the account. Tell Pedro — the user file may not be writable.';
+                $authError = 'Could not save the account — please try again shortly.';
             } elseif ($isBoss) {
                 $authNotice = 'Your account is ready. Sign in above.';
                 $showTab    = 'login';
@@ -120,8 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
                 $user['mailed'] = auth_notify_request($user, auth_new_token($email));
                 auth_put($user);   // remember whether the email actually went out
 
-                $authNotice = 'Thanks — Pedro has been asked to approve you. '
-                            . 'You will be able to sign in once he does.';
+                $authNotice = 'Thank you for signing up. You will get access once approved.';
             }
         }
     }
@@ -215,6 +237,16 @@ $ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
     <label for="l-pass">Password</label>
     <input id="l-pass" type="password" name="password" autocomplete="current-password" required>
     <button class="go" type="submit">Sign in</button>
+    <p class="note"><a href="#" id="link-forgot" style="color:#c94d30;font-weight:700">Forgot your password?</a></p>
+  </form>
+
+  <form method="post" id="form-forgot" class="<?= $showTab === 'forgot' ? 'on' : '' ?>">
+    <input type="hidden" name="lgc_action" value="forgot">
+    <label for="f-email">Your email</label>
+    <input id="f-email" type="email" name="email" autocomplete="username" required>
+    <button class="go" type="submit">Email me a reset link</button>
+    <p class="note">We’ll send a one-time link to set a new password.
+       <a href="#" id="link-back" style="color:#c94d30;font-weight:700">Back to sign in</a></p>
   </form>
 
   <form method="post" id="form-signup" class="<?= $showTab === 'signup' ? 'on' : '' ?>">
@@ -228,8 +260,8 @@ $ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
     <label for="s-pass2">Repeat it</label>
     <input id="s-pass2" type="password" name="password2" minlength="8" autocomplete="new-password" required>
     <button class="go" type="submit">Request access</button>
-    <p class="note">Pedro approves every account by hand. You will not be able to
-       sign in until he does.</p>
+    <p class="note">Every account is approved by hand. You will not be able to
+       sign in until your request has been approved.</p>
   </form>
 </div>
 
@@ -238,13 +270,17 @@ $ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
       ts = document.getElementById('tab-signup'),
       fl = document.getElementById('form-login'),
       fs = document.getElementById('form-signup');
+  var ff = document.getElementById('form-forgot');
   function show(which) {
-    var login = which === 'login';
-    tl.classList.toggle('on', login);  ts.classList.toggle('on', !login);
-    fl.classList.toggle('on', login);  fs.classList.toggle('on', !login);
+    var login = which === 'login', signup = which === 'signup', forgot = which === 'forgot';
+    tl.classList.toggle('on', login || forgot);  ts.classList.toggle('on', signup);
+    fl.classList.toggle('on', login);  fs.classList.toggle('on', signup);  ff.classList.toggle('on', forgot);
   }
   tl.addEventListener('click', function () { show('login'); });
   ts.addEventListener('click', function () { show('signup'); });
+  var lf = document.getElementById('link-forgot'), lb = document.getElementById('link-back');
+  if (lf) lf.addEventListener('click', function (e) { e.preventDefault(); show('forgot'); });
+  if (lb) lb.addEventListener('click', function (e) { e.preventDefault(); show('login'); });
 </script>
 </body>
 </html>

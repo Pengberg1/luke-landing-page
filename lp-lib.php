@@ -50,6 +50,88 @@ function lp_save_variants(array $v): bool {
     return true;
 }
 
+/* --------------------------------------------------------------------------
+ * Templates and page creation.
+ *
+ * A "template" is a base layout — a PHP file that renders the page (lp-body.php,
+ * lp-body-light.php). Each has a canonical example variant whose content is used
+ * to seed a fresh page. Adding a genuinely new layout is a code change (a new
+ * lp-body-*.php plus one line here); once added, it appears in the admin's
+ * "New page" menu and pages can be spun up on it without touching code again.
+ * ------------------------------------------------------------------------ */
+function lp_templates(): array {
+    return [
+        'classic' => ['label' => 'Classic — bold, dark, high-contrast', 'seed' => '01'],
+        'light'   => ['label' => 'Light — airy, modern, warm',          'seed' => '05'],
+    ];
+}
+
+/** Next free two-digit id, e.g. '06'. */
+function lp_next_id(array $LPS): string {
+    $max = 0;
+    foreach (array_keys($LPS) as $id) {
+        if (preg_match('/^\d+$/', (string)$id)) $max = max($max, (int)$id);
+    }
+    return str_pad((string)($max + 1), 2, '0', STR_PAD_LEFT);
+}
+
+/**
+ * Create a new landing page and return [bool ok, string message].
+ *
+ * $source is either:
+ *   'copy:NN'   — an exact duplicate of an existing page
+ *   'tpl:key'   — a fresh page seeded from a base template's example
+ *
+ * The page is created PAUSED (never surprise the public with a half-built page),
+ * added to the store, and given its own /_NN/ folder + loader on disk so the URL
+ * works immediately. $LPS is updated in place.
+ */
+function lp_create_page(array &$LPS, string $source, string $name): array {
+    $seed = null;
+
+    if (strncmp($source, 'copy:', 5) === 0) {
+        $srcId = substr($source, 5);
+        if (isset($LPS[$srcId])) $seed = $LPS[$srcId];
+    } elseif (strncmp($source, 'tpl:', 4) === 0) {
+        $key = substr($source, 4);
+        $tpl = lp_templates()[$key] ?? null;
+        if ($tpl && isset($LPS[$tpl['seed']])) {
+            $seed = $LPS[$tpl['seed']];
+            $seed['template'] = $key;
+        }
+    }
+    if (!$seed) return [false, 'Could not create the page — unknown source.'];
+
+    $id   = lp_next_id($LPS);
+    $path = '/_' . $id . '/';
+
+    $seed['name'] = $name;
+    $seed['note'] = 'New page — edit me.';
+    $seed['live'] = false;      // always born paused
+    $seed['path'] = $path;
+    unset($seed['video']);       // a copied video URL rarely belongs on the new page
+    $seed['video'] = '';
+
+    $LPS[$id] = $seed;
+    if (!lp_save_variants($LPS)) {
+        unset($LPS[$id]);
+        return [false, 'Could not save the new page — the settings file is not writable.'];
+    }
+
+    /* The URL only works if /_NN/index.php exists. PHP can write it — the same
+       way it writes uploads and the JSON store. */
+    $dir = __DIR__ . '/_' . $id;
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $loader = "<?php\n/* Landing page {$id} — created in /admin.php. All logic lives in lp.php. */\n"
+            . "\$LP_ID = '{$id}';\nrequire __DIR__ . '/../lp.php';\n";
+    @file_put_contents($dir . '/index.php', $loader, LOCK_EX);
+
+    if (!is_file($dir . '/index.php')) {
+        return [true, 'Page saved, but its folder could not be written — tell your developer. It shows here but the URL ' . $path . ' may 404.'];
+    }
+    return [true, 'Created “' . $name . '” at ' . $path . ' — paused. Edit it, then set it live.'];
+}
+
 /** Lighten (+) or darken (-) a hex colour by a percentage. */
 function lp_shade(string $hex, float $pct): string {
     $hex = ltrim($hex, '#');

@@ -6,14 +6,14 @@
  * Usage:  lgc_nav('report');   // 'report' | 'pages' | 'admin'
  */
 function lgc_nav(string $here = ''): void {
-    $me     = function_exists('auth_user') ? auth_user() : null;
-    $isBoss = $me && defined('AUTH_ADMINS')
-        && in_array(strtolower($me['email']), array_map('strtolower', AUTH_ADMINS), true);
+    $me = function_exists('auth_user') ? auth_user() : null;
 
+    /* Both links are visible to any signed-in account. What you can DO on the
+       Landing pages screen depends on your role, which that page enforces —
+       there is no separate "admin" tab to hide. */
     $items = [
         'report' => ['Report',        '/report/'],
-        'pages'  => ['Landing pages', '/admin.php#pages'],
-        'admin'  => ['Admin',         '/admin.php'],
+        'admin'  => ['Landing pages', '/admin.php'],
     ];
     ?>
     <style>
@@ -34,8 +34,7 @@ function lgc_nav(string $here = ''): void {
           <path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
           <rect x="171" y="179" width="203" height="36"/>
         </svg>
-        <?php foreach ($items as $key => [$label, $href]):
-            if ($key === 'admin' && !$isBoss) continue; ?>
+        <?php foreach ($items as $key => [$label, $href]): ?>
           <a class="<?= $here === $key ? 'on' : '' ?>" href="<?= $href ?>"><?= $label ?></a>
         <?php endforeach; ?>
         <a href="/" target="_blank" rel="noopener">View site ↗</a>

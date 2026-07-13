@@ -18,15 +18,25 @@ require __DIR__ . '/auth.php';          // must be signed in
 require_once __DIR__ . '/lp-lib.php';
 require_once __DIR__ . '/nav.php';
 
-$me = auth_user();
-if (!auth_is_admin($me)) {
-    http_response_code(403);
-    exit('Not allowed.');
-}
+/* Any approved account can open this page. What they can DO depends on their
+   role: a normal user can only set pages live or paused; an admin can edit
+   pages, create pages, and manage who has access. Every admin-only action is
+   checked again below — hiding a button is not security. */
+$me      = auth_user();
+$isAdmin = auth_is_admin($me);
 
 $notice      = '';
 $uploadError = '';
+$resetLink   = '';               // set when an admin generates a reset link to copy
 $LPS         = lp_variants();
+
+/** Refuse anything an admin-only action was asked to do by a non-admin. */
+function lp_admin_guard(bool $isAdmin): void {
+    if (!$isAdmin) {
+        http_response_code(403);
+        exit('That action needs an admin account.');
+    }
+}
 
 /**
  * Accept one uploaded photo and return its public path, or '' if none was sent.
@@ -99,30 +109,71 @@ function lp_stats7(): array {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $what = (string)($_POST['do'] ?? '');
 
-    /* ---- People ---- */
+    /* ---- People (admin only) ---- */
     if ($what === 'user') {
+        lp_admin_guard($isAdmin);
         $email  = (string)($_POST['email'] ?? '');
         $action = (string)($_POST['action'] ?? '');
         $u      = auth_find($email);
 
         if ($u) {
-            if ($action === 'approve') {
+            $isSelf = strcasecmp($u['email'], $me['email']) === 0;
+
+            if ($action === 'approve' || $action === 'approve_admin') {
                 $u['status']   = 'approved';
                 $u['approved'] = gmdate('Y-m-d H:i');
+                $u['role']     = $action === 'approve_admin' ? 'admin' : 'user';
                 auth_put($u);
-                $notice = htmlspecialchars($u['name']) . ' can now sign in.';
+                $notice = htmlspecialchars($u['name']) . ' can now sign in'
+                        . ($u['role'] === 'admin' ? ' as an admin.' : ' as a user.');
+
+            } elseif ($action === 'make_admin' || $action === 'make_user') {
+                if ($isSelf) {
+                    $notice = 'You cannot change your own role.';   // never lock the last admin out
+                } elseif (auth_is_bootstrap_admin($u['email']) && $action === 'make_user') {
+                    $notice = htmlspecialchars($u['name']) . ' is a permanent admin and cannot be demoted.';
+                } else {
+                    $u['role'] = $action === 'make_admin' ? 'admin' : 'user';
+                    auth_put($u);
+                    $notice = htmlspecialchars($u['name']) . ' is now an ' . $u['role'] . '.';
+                }
+
             } elseif ($action === 'remove') {
-                if (strcasecmp($u['email'], $me['email']) === 0) {
-                    $notice = 'You cannot remove your own account.';   // never lock yourself out
+                if ($isSelf) {
+                    $notice = 'You cannot remove your own account.';
+                } elseif (auth_is_bootstrap_admin($u['email'])) {
+                    $notice = htmlspecialchars($u['name']) . ' is a permanent admin and cannot be removed.';
                 } else {
                     auth_remove($u['email']);
                     $notice = htmlspecialchars($email) . ' has been removed.';
                 }
+
+            } elseif ($action === 'resetlink') {
+                /* The reliable password-reset path: generate the link here and
+                   show it, so you can hand it over directly — no dependence on
+                   email actually arriving. Also emailed, as a convenience. */
+                $tok = auth_new_token($u['email'], 'reset');
+                auth_notify_reset($u, $tok);
+                $resetLink = AUTH_SITE . '/reset.php?token=' . $tok;
+                $notice = 'Reset link for ' . htmlspecialchars($u['name'])
+                        . ' (valid 2 hours) — copy and send it, or they’ll also get it by email:';
             }
         }
     }
 
-    /* ---- Flip one page live / paused, without opening the editor ---- */
+    /* ---- Create a landing page: a copy of one, or a fresh page on a base
+            template (admin only) ---- */
+    if ($what === 'newpage') {
+        lp_admin_guard($isAdmin);
+        $name   = trim((string)($_POST['name'] ?? '')) ?: 'Untitled page';
+        $source = (string)($_POST['source'] ?? '');
+
+        [$ok, $msg] = lp_create_page($LPS, $source, $name);
+        $LPS    = lp_variants();
+        $notice = $msg;
+    }
+
+    /* ---- Flip one page live / paused (any approved user) ---- */
     if ($what === 'toggle') {
         $id = (string)($_POST['id'] ?? '');
         if (isset($LPS[$id])) {
@@ -131,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!lp_save_variants($LPS)) {
                 /* Never claim a save that didn't happen — that is exactly how the
                    old store lied about pausing pages. */
-                $notice = 'Could not save. The variants file is not writable — tell Pedro.';
+                $notice = 'Could not save — the settings file is not writable. Try again shortly.';
             } else {
                 $LPS    = lp_variants();
                 $notice = '“' . htmlspecialchars($LPS[$id]['name']) . '” is now '
@@ -140,8 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    /* ---- Save a page ---- */
+    /* ---- Save a page (admin only) ---- */
     if ($what === 'page') {
+        lp_admin_guard($isAdmin);
         $id = (string)($_POST['id'] ?? '');
         if (isset($LPS[$id])) {
             $LPS[$id]['live'] = !empty($_POST['live']);
@@ -192,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             if (!lp_save_variants($LPS)) {
-                $notice = 'Could not save. The variants file is not writable — tell Pedro.';
+                $notice = 'Could not save — the settings file is not writable. Try again shortly.';
             } else {
                 $LPS    = lp_variants();
                 $notice = $uploadError ?: 'Saved “' . htmlspecialchars($LPS[$id]['name']) . '”.'
@@ -364,19 +416,51 @@ $swatches = [
   .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:1.75rem;
          text-align:center;color:var(--muted);font-size:.9rem}
 
-  @media(max-width:40em){ .texts{grid-template-columns:1fr} .thumb{height:12rem} }
+  /* Page header with the New-page button */
+  .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;margin-bottom:2rem}
+  .primary.big{padding:.8rem 1.3rem;font-size:.74rem;flex:none;white-space:nowrap}
+
+  /* Role management */
+  .urow{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .ok2{background:var(--teal);color:#fff}
+  .ghost.danger{color:#a33d24;border-color:rgba(163,61,36,.3)}
+  .ghost.danger:hover{background:rgba(163,61,36,.06)}
+  .rolepill{display:inline-block;font-size:.56rem;letter-spacing:.1em;text-transform:uppercase;
+            font-weight:800;padding:.2rem .5rem;border-radius:99px;margin-left:.5rem;vertical-align:middle}
+  .rolepill.admin{background:rgba(224,90,58,.14);color:#a33d24}
+  .rolepill.user{background:rgba(30,30,30,.08);color:var(--muted)}
+
+  @media(max-width:40em){ .texts{grid-template-columns:1fr} .thumb{height:12rem} .pagehead{flex-direction:column} }
 </style></head><body>
 
 <?php lgc_nav('admin'); ?>
 
 <div class="wrap">
-  <h1>Landing pages</h1>
-  <p class="sub">
-    Four versions of the same page. Point a campaign at whichever one suits it, and pause the rest.
-    A paused page returns “not found” to the public — you can still open it yourself to check the work.
-  </p>
+  <div class="pagehead">
+    <div>
+      <h1>Landing pages</h1>
+      <p class="sub">
+        Point a campaign at whichever page suits it, and pause the rest. A paused page returns
+        “not found” to the public — you can still open it yourself to check the work.
+        <?php if (!$isAdmin): ?>
+          <br><b>You’re signed in as a user</b> — you can set pages live or paused. Ask an admin for anything more.
+        <?php endif; ?>
+      </p>
+    </div>
+    <?php if ($isAdmin): ?>
+      <button class="primary big" type="button" id="newpage-open">+ New page</button>
+    <?php endif; ?>
+  </div>
 
   <?php if ($notice): ?><div class="notice"><?= $notice ?></div><?php endif; ?>
+  <?php if ($resetLink): ?>
+    <div class="notice" style="background:rgba(224,90,58,.1);color:#8a2318">
+      <input type="text" readonly value="<?= htmlspecialchars($resetLink) ?>"
+             onclick="this.select()"
+             style="width:100%;padding:.6rem .7rem;border:1px solid rgba(30,30,30,.2);border-radius:6px;
+                    font:inherit;font-size:.82rem;background:#fff">
+    </div>
+  <?php endif; ?>
 
   <div class="cards">
   <?php foreach ($LPS as $id => $v):
@@ -418,17 +502,20 @@ $swatches = [
       </div>
 
       <div class="acts">
-        <button class="primary" type="button" data-edit="<?= htmlspecialchars($id) ?>">Edit</button>
+        <?php if ($isAdmin): ?>
+          <button class="primary" type="button" data-edit="<?= htmlspecialchars($id) ?>">Edit</button>
+        <?php endif; ?>
         <form method="post" style="display:contents">
           <input type="hidden" name="do" value="toggle">
           <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
-          <button class="ghost" type="submit"><?= $v['live'] ? 'Pause' : 'Go live' ?></button>
+          <button class="<?= $isAdmin ? 'ghost' : 'primary' ?>" type="submit"><?= $v['live'] ? 'Pause' : 'Go live' ?></button>
         </form>
         <a class="btn ghost" href="/report/?lp=<?= htmlspecialchars($id) ?>">Numbers</a>
       </div>
     </div>
 
-    <!-- Editor for this page -->
+    <?php if ($isAdmin): ?>
+    <!-- Editor for this page (admin only) -->
     <dialog id="ed-<?= htmlspecialchars($id) ?>">
       <form class="ed" method="post" enctype="multipart/form-data">
         <input type="hidden" name="do" value="page">
@@ -546,8 +633,12 @@ $swatches = [
         </footer>
       </form>
     </dialog>
+    <?php endif; /* $isAdmin — editor */ ?>
   <?php endforeach; ?>
   </div>
+
+  <?php if ($isAdmin): ?>
+  <!-- ============ PEOPLE (admin only) ============ -->
 
   <h2>Waiting for you<?= $pending ? ' (' . count($pending) . ')' : '' ?></h2>
   <?php if (!$pending): ?>
@@ -558,34 +649,49 @@ $swatches = [
         <b><?= htmlspecialchars($u['name']) ?></b>
         <span><?= htmlspecialchars($u['email']) ?> · asked <?= htmlspecialchars((string)($u['added'] ?? '')) ?></span>
         <?php if (isset($u['mailed']) && $u['mailed'] === false): ?>
-          <span class="mail">The email to you failed — approve here instead.</span>
+          <span class="mail">Heads-up email to you didn’t send — approve right here.</span>
         <?php endif; ?>
       </div>
-      <form method="post" style="display:flex;gap:.5rem">
+      <form method="post" class="urow">
         <input type="hidden" name="do" value="user">
         <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
-        <button class="primary" name="action" value="approve" type="submit">Approve</button>
+        <button class="primary" name="action" value="approve" type="submit" title="Can only pause/unpause pages">Approve as user</button>
+        <button class="ok2" name="action" value="approve_admin" type="submit" title="Full control">Approve as admin</button>
         <button class="ghost" name="action" value="remove" type="submit">Decline</button>
       </form>
     </div>
   <?php endforeach; endif; ?>
 
   <h2>Has access (<?= count($active) ?>)</h2>
-  <?php foreach ($active as $u): ?>
+  <p style="margin:-.5rem 0 1rem;color:var(--muted);font-size:.84rem">
+    <b>Users</b> can only set pages live or paused. <b>Admins</b> can edit pages, create pages and manage people.
+  </p>
+  <?php foreach ($active as $u):
+        $urole   = auth_role($u);
+        $isSelf  = strcasecmp($u['email'], $me['email']) === 0;
+        $isBoot  = auth_is_bootstrap_admin($u['email']); ?>
     <div class="row">
       <div class="who">
-        <b><?= htmlspecialchars($u['name']) ?></b>
-        <span><?= htmlspecialchars($u['email']) ?></span>
+        <b><?= htmlspecialchars($u['name']) ?>
+          <span class="rolepill <?= $urole ?>"><?= $urole === 'admin' ? 'Admin' : 'User' ?></span>
+          <?php if ($isSelf): ?><span class="pill">You</span><?php endif; ?>
+        </b>
+        <span><?= htmlspecialchars($u['email']) ?><?= $isBoot ? ' · permanent admin' : '' ?></span>
       </div>
-      <?php if (strcasecmp($u['email'], $me['email']) === 0): ?>
-        <span class="pill">You</span>
-      <?php else: ?>
-        <form method="post">
-          <input type="hidden" name="do" value="user">
-          <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
-          <button class="ghost" name="action" value="remove" type="submit">Remove access</button>
-        </form>
-      <?php endif; ?>
+      <form method="post" class="urow">
+        <input type="hidden" name="do" value="user">
+        <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
+        <button class="ghost" name="action" value="resetlink" type="submit"
+                title="Generate a one-time link to set a new password">Reset link</button>
+        <?php if (!$isSelf && !$isBoot): ?>
+          <?php if ($urole === 'admin'): ?>
+            <button class="ghost" name="action" value="make_user" type="submit">Make user</button>
+          <?php else: ?>
+            <button class="ghost" name="action" value="make_admin" type="submit">Make admin</button>
+          <?php endif; ?>
+          <button class="ghost danger" name="action" value="remove" type="submit">Remove</button>
+        <?php endif; ?>
+      </form>
     </div>
   <?php endforeach; ?>
 
@@ -597,16 +703,63 @@ $swatches = [
           <b><?= htmlspecialchars($u['name']) ?></b>
           <span><?= htmlspecialchars($u['email']) ?> · cannot sign in</span>
         </div>
-        <form method="post" style="display:flex;gap:.5rem">
+        <form method="post" class="urow">
           <input type="hidden" name="do" value="user">
           <input type="hidden" name="email" value="<?= htmlspecialchars($u['email']) ?>">
-          <button class="ghost" name="action" value="approve" type="submit">Let them in after all</button>
+          <button class="ghost" name="action" value="approve" type="submit">Let them in as user</button>
           <button class="ghost" name="action" value="remove" type="submit">Remove</button>
         </form>
       </div>
     <?php endforeach; ?>
   <?php endif; ?>
+  <?php endif; /* $isAdmin — people */ ?>
 </div>
+
+<?php if ($isAdmin): ?>
+<!-- New-page dialog (admin only) -->
+<dialog id="newpage">
+  <form class="ed" method="post">
+    <input type="hidden" name="do" value="newpage">
+    <header>
+      <b>New landing page</b>
+      <button class="close" type="button" id="newpage-close" aria-label="Close">✕</button>
+    </header>
+    <div class="scroll">
+      <p style="margin:0 0 1.25rem;color:var(--muted);font-size:.9rem">
+        A new page is created <b>paused</b>, so nothing goes public by accident. Edit it, then set it live.
+      </p>
+      <span class="fld" style="display:block;margin-bottom:1rem">
+        <label for="np-name">Name (only you see this)</label>
+        <input id="np-name" type="text" name="name" placeholder="e.g. Spring campaign — women" required>
+      </span>
+      <span class="fld" style="display:block">
+        <label for="np-source">Start from</label>
+        <select id="np-source" name="source">
+          <optgroup label="A fresh page on a base template">
+            <?php foreach (lp_templates() as $key => $t): ?>
+              <option value="tpl:<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($t['label']) ?></option>
+            <?php endforeach; ?>
+          </optgroup>
+          <optgroup label="A copy of an existing page">
+            <?php foreach ($LPS as $id => $v): ?>
+              <option value="copy:<?= htmlspecialchars($id) ?>">Copy of <?= htmlspecialchars($v['name']) ?> (<?= htmlspecialchars($v['path']) ?>)</option>
+            <?php endforeach; ?>
+          </optgroup>
+        </select>
+      </span>
+      <p style="margin:1.25rem 0 0;color:var(--muted);font-size:.8rem">
+        Want a brand-new <em>layout</em> that none of the base templates offers? That’s a code change —
+        ask your developer to add it, and it will appear in this list.
+      </p>
+    </div>
+    <footer>
+      <span style="margin-right:auto"></span>
+      <button class="ghost" type="button" id="newpage-cancel">Cancel</button>
+      <button class="primary" type="submit">Create page</button>
+    </footer>
+  </form>
+</dialog>
+<?php endif; ?>
 
 <script>
   /* Open / close the editors. <dialog> gives us the focus trap and Esc for free. */
@@ -620,6 +773,17 @@ $swatches = [
       document.getElementById('ed-' + btn.dataset.close).close();
     });
   });
+
+  /* New-page dialog. */
+  var np = document.getElementById('newpage');
+  var npOpen = document.getElementById('newpage-open');
+  if (np && npOpen) {
+    npOpen.addEventListener('click', function () { np.showModal(); });
+    ['newpage-close', 'newpage-cancel'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', function () { np.close(); });
+    });
+  }
 
   /* Redraw the preview as the colours and copy change. The point is that nobody
      saves a scheme they haven't seen — the old page made you guess from six hex
