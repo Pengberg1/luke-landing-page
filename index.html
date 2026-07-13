@@ -32,6 +32,58 @@
      Reviews bar, which would land fully hidden and read as a broken link. */
   html{scroll-padding-top:6.25rem}
   section[id]{scroll-margin-top:6.25rem}
+
+  /* ============================================================
+     CTA SYSTEM — the page exists to drive applications.
+     Every persuasion peak (desire, proof, value, objections-cleared)
+     gets an exit to the form. Microcopy kills the three friction
+     points: time cost, silence, and commitment fear.
+     ============================================================ */
+
+  /* Reassurance line under every CTA. All three claims are true per
+     lukegoulden.com/contact/ — 4-field form, stated 24h reply, application
+     (not a purchase). Never let this drift from what the form promises. */
+  .ll-cta-trust{
+    display:flex;align-items:center;justify-content:center;gap:var(--space-sm);
+    flex-wrap:wrap;margin-top:var(--space-sm);
+    font-size:var(--fs-sm);color:var(--text-muted);
+  }
+  .ll-cta-trust span{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+  .ll-cta-trust svg{width:.95rem;height:.95rem;color:var(--lg-sage);flex:none}
+  .ll-cta-trust--ondark{color:var(--text-on-dark-muted)}
+  .ll-cta-trust--ondark svg{color:var(--lg-sage)}
+
+  /* Mid-page conversion band — pattern interrupt on teal, placed straight
+     after the proof grid where intent peaks. */
+  .ll-cta-band{background:var(--lg-teal);color:var(--text-on-dark);text-align:center}
+  .ll-cta-band .ll-inner{padding-block:var(--section-y-sm);display:grid;justify-items:center;gap:var(--space-md)}
+  .ll-cta-band h2{color:var(--lg-offwhite);font-size:var(--fs-xl);max-width:24ch;margin:0}
+  .ll-cta-band h2 em{font-style:normal;color:var(--lg-sage)}
+  .ll-cta-band p{color:var(--text-on-dark-muted);max-width:52ch;margin:0}
+
+  /* Quiet inline CTA — closes the value section without shouting. */
+  .ll-cta-inline{display:grid;justify-items:center;gap:var(--space-xs);margin-top:var(--space-2xl);text-align:center}
+
+  /* Sticky mobile CTA — paid social lands mostly on phones; keep the
+     action in the thumb zone at all times. Revealed once the hero CTA
+     scrolls away (JS toggles .is-on) so it never double-stacks. */
+  .ll-sticky-cta{
+    position:fixed;left:0;right:0;bottom:0;z-index:var(--z-header);
+    display:none;align-items:center;gap:var(--space-md);
+    padding:var(--space-sm) var(--space-md);
+    padding-bottom:calc(var(--space-sm) + env(safe-area-inset-bottom,0px));
+    background:rgba(247,245,240,.94);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border-top:var(--border-hairline);
+    transform:translateY(110%);transition:transform .28s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ll-sticky-cta.is-on{transform:translateY(0)}
+  .ll-sticky-cta .ll-sticky-copy{flex:1;min-width:0;line-height:1.25}
+  .ll-sticky-cta .ll-sticky-copy b{display:block;color:var(--lg-teal);font-size:.92rem;font-weight:var(--fw-bold)}
+  .ll-sticky-cta .ll-sticky-copy span{display:block;color:var(--text-muted);font-size:.72rem}
+  .ll-sticky-cta .lg-btn{flex:none}
+  @media(max-width:64em){ .ll-sticky-cta{display:flex} }
+  @media (prefers-reduced-motion: reduce){ .ll-sticky-cta{transition:none} }
   .ll-brand{display:inline-flex;align-items:center;gap:var(--space-sm);color:var(--lg-teal)}
   .ll-brand svg{height:1.45rem;width:auto}
   .ll-brand .ll-wordmark{
@@ -231,7 +283,7 @@
       <li><a href="#reviews">Reviews</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
-    <a class="lg-btn lg-btn--primary lg-btn--sm" href="https://lukegoulden.com/contact/" target="_blank" rel="noopener">Apply for coaching</a>
+    <a class="lg-btn lg-btn--coral lg-btn--sm" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=header" target="_blank" rel="noopener">Book your free call</a>
     <button class="ll-burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
     </button>
@@ -251,9 +303,14 @@
           <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">Results</span><span class="lg-stat__label">That actually last</span></div>
         </div>
         <div class="ll-actions">
-          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/" target="_blank" rel="noopener">Apply for coaching</a>
+          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=hero" target="_blank" rel="noopener">Book your free game plan call</a>
           <span class="ll-note">Spots are limited — apply today.</span>
         </div>
+        <p class="ll-cta-trust ll-cta-trust--ondark">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Takes 2 minutes</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Luke replies within 24 hours</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>No obligation</span>
+        </p>
         <div class="ll-rating">
           <span class="ll-stars" aria-hidden="true">★★★★★</span>
           <span><b>Excellent</b> · rated 4.9 out of 5 from 100+ reviews on Trustpilot</span>
@@ -309,6 +366,19 @@
       <figure class="lg-transform" style="margin:0"><img src="assets/tf-scott.jpg" alt="Scott — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Scott</div><div class="lg-transform__result">−45lbs</div><div class="lg-transform__weeks">5 months</div></figcaption></figure>
       <figure class="lg-transform" style="margin:0"><img src="assets/tf-richie.jpg" alt="Richie — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Richie</div><div class="lg-transform__result">−14lbs</div><div class="lg-transform__weeks">8 weeks, before his wedding</div></figcaption></figure>
     </div>
+  </div>
+</section>
+
+<section class="ll-cta-band" data-screen-label="Mid-page CTA">
+  <div class="lg-container ll-inner">
+    <h2>Craig, Helen and Jono all started the same way.<em> With one call.</em></h2>
+    <p>Tell Luke where you are now and what you want to change. He'll map out exactly how it would work around your week — before you commit to anything.</p>
+    <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_results" target="_blank" rel="noopener">Book your free game plan call</a>
+    <p class="ll-cta-trust ll-cta-trust--ondark">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Takes 2 minutes</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Luke replies within 24 hours</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>No obligation</span>
+    </p>
   </div>
 </section>
 
@@ -392,6 +462,14 @@
         <div class="ll-tagline">Just proven strategies, ongoing support — and a coach who truly cares.</div>
       </div>
     </div>
+    <div class="ll-cta-inline">
+      <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_included" target="_blank" rel="noopener">Book your free game plan call</a>
+      <p class="ll-cta-trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Takes 2 minutes</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Luke replies within 24 hours</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>No obligation</span>
+      </p>
+    </div>
   </div>
 </section>
 
@@ -433,7 +511,7 @@
         <h3>Stop starting over.<span>You deserve better.</span></h3>
         <p>You don’t need another diet. You need a plan, support and accountability.</p>
         <div class="ll-act">
-          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/" target="_blank" rel="noopener">Apply for coaching</a>
+          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=closing" target="_blank" rel="noopener">Book your free game plan call</a>
           <span class="ll-note">Spots are limited — apply now to secure yours.</span>
         </div>
       </div>
@@ -452,6 +530,16 @@
   </div>
 </footer>
 
+<!-- Mobile sticky CTA: paid social traffic is overwhelmingly mobile, and the
+     page is long. Keeps the action one thumb-tap away at every scroll depth. -->
+<div class="ll-sticky-cta" id="sticky-cta" aria-hidden="true">
+  <div class="ll-sticky-copy">
+    <b>Ready to start?</b>
+    <span>Free call · Reply in 24 hours</span>
+  </div>
+  <a class="lg-btn lg-btn--coral" href="https://lukegoulden.com/contact/?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=sticky_mobile" target="_blank" rel="noopener">Book free call</a>
+</div>
+
 <script>
   (function () {
     var burger = document.getElementById('burger');
@@ -467,6 +555,18 @@
           burger.setAttribute('aria-expanded', 'false');
         }
       });
+    }
+
+    /* Reveal the sticky CTA only once the hero button has scrolled out of
+       view — showing both at once would just compete with itself. */
+    var sticky = document.getElementById('sticky-cta');
+    var hero = document.getElementById('top');
+    if (sticky && hero && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        var heroVisible = entries[0].isIntersecting;
+        sticky.classList.toggle('is-on', !heroVisible);
+        sticky.setAttribute('aria-hidden', heroVisible ? 'true' : 'false');
+      }, { rootMargin: '-40% 0px 0px 0px' }).observe(hero);
     }
   })();
 </script>
