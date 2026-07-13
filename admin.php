@@ -127,10 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (string)($_POST['id'] ?? '');
         if (isset($LPS[$id])) {
             $LPS[$id]['live'] = empty($LPS[$id]['live']);
-            lp_save_variants($LPS);
-            $LPS    = lp_variants();
-            $notice = '“' . htmlspecialchars($LPS[$id]['name']) . '” is now '
-                    . ($LPS[$id]['live'] ? 'live to the public.' : 'paused — only you can see it.');
+
+            if (!lp_save_variants($LPS)) {
+                /* Never claim a save that didn't happen — that is exactly how the
+                   old store lied about pausing pages. */
+                $notice = 'Could not save. The variants file is not writable — tell Pedro.';
+            } else {
+                $LPS    = lp_variants();
+                $notice = '“' . htmlspecialchars($LPS[$id]['name']) . '” is now '
+                        . ($LPS[$id]['live'] ? 'live to the public.' : 'paused — only you can see it.');
+            }
         }
     }
 
@@ -185,10 +191,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $LPS[$id]['text'][$k] = trim(strip_tags((string)$_POST['t_' . $k]));
                 }
             }
-            lp_save_variants($LPS);
-            $LPS    = lp_variants();
-            $notice = 'Saved “' . htmlspecialchars($LPS[$id]['name']) . '”.'
-                    . ($LPS[$id]['live'] ? ' It is live.' : ' It is paused — only you can see it.');
+            if (!lp_save_variants($LPS)) {
+                $notice = 'Could not save. The variants file is not writable — tell Pedro.';
+            } else {
+                $LPS    = lp_variants();
+                $notice = $uploadError ?: 'Saved “' . htmlspecialchars($LPS[$id]['name']) . '”.'
+                        . ($LPS[$id]['live'] ? ' It is live.' : ' It is paused — only you can see it.');
+            }
         }
     }
 }

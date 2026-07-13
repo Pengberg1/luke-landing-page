@@ -1,19 +1,53 @@
 <?php
 /**
  * Variant helpers — shared by the landing pages (lp.php), the admin editor and
- * the reports. Kept separate so the report can read the list of variants
- * without accidentally rendering a landing page.
+ * the report. Kept separate so the report can read the list of variants without
+ * accidentally rendering a landing page.
+ *
+ * WHY THE STORE IS JSON, NOT PHP
+ * ------------------------------
+ * It used to be a .php file read back with include(). This host caches compiled
+ * PHP (opcache), so a read straight after a write returned the OLD file: the
+ * admin saved your change, then immediately re-read the previous version and
+ * showed it back to you. Pause did nothing. Go-live did nothing. Colour changes
+ * "didn't save". The write was never the problem — the read was.
+ *
+ * JSON is data. It is never compiled, so a read always sees the last write.
+ * Writes are atomic (temp file, then rename) so a crash mid-write cannot leave a
+ * half-written file that takes every landing page down.
+ *
+ * lgc-data/ is blocked from the web by .htaccess, so the file isn't public.
  */
 
-const LP_VARIANTS_FILE = __DIR__ . '/lgc-data/variants.php';
+const LP_STORE  = __DIR__ . '/lgc-data/variants.json';
+const LP_LEGACY = __DIR__ . '/lgc-data/variants.php';   // migrated from, once
 
 function lp_variants(): array {
-    return file_exists(LP_VARIANTS_FILE) ? (include LP_VARIANTS_FILE) : [];
+    if (is_file(LP_STORE)) {
+        $data = json_decode((string) @file_get_contents(LP_STORE), true);
+        if (is_array($data) && $data) return $data;
+    }
+
+    /* First run after the fix: carry the old PHP store over, then never look at
+       it again. Whatever was live stays live. */
+    if (is_file(LP_LEGACY)) {
+        $data = include LP_LEGACY;
+        if (is_array($data) && $data) {
+            lp_save_variants($data);
+            return $data;
+        }
+    }
+    return [];
 }
 
 function lp_save_variants(array $v): bool {
-    $php = "<?php\n/* Landing page variants — edited via /admin.php */\nreturn " . var_export($v, true) . ";\n";
-    return (bool) @file_put_contents(LP_VARIANTS_FILE, $php, LOCK_EX);
+    $json = json_encode($v, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json === false) return false;
+
+    $tmp = LP_STORE . '.tmp';
+    if (@file_put_contents($tmp, $json, LOCK_EX) === false) return false;
+    if (!@rename($tmp, LP_STORE)) { @unlink($tmp); return false; }
+    return true;
 }
 
 /** Lighten (+) or darken (-) a hex colour by a percentage. */
