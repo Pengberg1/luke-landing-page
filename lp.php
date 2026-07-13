@@ -28,6 +28,9 @@ if (!isset($variants[$LP_ID])) {
 $V = $variants[$LP_ID];
 $C = $V['colors'];
 $T = $V['text'];
+$IMG = $V['images']  ?? [];
+$RES = $V['results'] ?? [];
+$VID = trim((string)($V['video'] ?? ''));
 $DARK_UI = lp_is_dark($C['page_bg']);
 
 /* Not live? The public gets a 404 — a paused campaign page must not be
@@ -52,4 +55,9 @@ if (empty($V['live'])) {
     }
 }
 
-require __DIR__ . '/lp-body.php';
+/* Two builds, not one. A light page written for women cannot be the dark page
+   with different hex codes — the layout, the rhythm and the register all differ.
+   Everything else (colours, copy, images, tracking, the live switch) is shared. */
+$tpl = ($V['template'] ?? 'classic') === 'light' ? 'lp-body-light.php' : 'lp-body.php';
+
+require __DIR__ . '/' . $tpl;

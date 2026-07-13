@@ -24,8 +24,56 @@ if (!auth_is_admin($me)) {
     exit('Not allowed.');
 }
 
-$notice = '';
-$LPS    = lp_variants();
+$notice      = '';
+$uploadError = '';
+$LPS         = lp_variants();
+
+/**
+ * Accept one uploaded photo and return its public path, or '' if none was sent.
+ *
+ * Rules that matter: we trust the file's real image type (getimagesize), not its
+ * name or the browser's content-type header, and we write it under a name WE
+ * generate. A visitor-supplied filename is how a .php lands in a web root.
+ */
+function lp_take_upload(string $field): string {
+    global $uploadError;
+
+    if (empty($_FILES[$field]['name']) || ($_FILES[$field]['error'] ?? 4) === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+    $f = $_FILES[$field];
+
+    if ($f['error'] !== UPLOAD_ERR_OK) { $uploadError = 'That image did not upload — try again.'; return ''; }
+    if ($f['size'] > 8 * 1024 * 1024)  { $uploadError = 'That image is over 8 MB. Shrink it first.'; return ''; }
+
+    $info = @getimagesize($f['tmp_name']);          // real content, not the filename
+    $ext  = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$info[2] ?? 0] ?? '';
+    if (!$ext) { $uploadError = 'Only JPG, PNG or WebP images, please.'; return ''; }
+
+    $dir = __DIR__ . '/assets/uploads';
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
+        $uploadError = 'Could not create /assets/uploads on the server.';
+        return '';
+    }
+
+    $name = date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
+    if (!@move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
+        $uploadError = 'Could not save the image on the server.';
+        return '';
+    }
+    return '/assets/uploads/' . $name;
+}
+
+/** Every photo already on the server — so you can reuse one without re-uploading. */
+function lp_library(): array {
+    $out = [];
+    foreach (['assets', 'assets/uploads'] as $d) {
+        foreach (glob(__DIR__ . '/' . $d . '/*.{jpg,jpeg,png,webp}', GLOB_BRACE) ?: [] as $p) {
+            $out[] = '/' . $d . '/' . basename($p);
+        }
+    }
+    return $out;
+}
 
 /** Views and clicks per landing page over the last 7 days — so each card can
  *  show whether it is actually working, not just what colour it is. */
@@ -94,6 +142,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $LPS[$id]['name'] = trim((string)($_POST['name'] ?? '')) ?: $LPS[$id]['name'];
             $LPS[$id]['note'] = trim((string)($_POST['note'] ?? ''));
 
+            /* Video: empty means the block does not exist at all. An empty player
+               is worse than no player, so we never render a placeholder. */
+            $vid = trim((string)($_POST['video'] ?? ''));
+            $LPS[$id]['video'] = (filter_var($vid, FILTER_VALIDATE_URL) || $vid === '') ? $vid : ($LPS[$id]['video'] ?? '');
+
+            /* Photos. Two ways to change one: upload a file, or point at a path
+               that is already on the server. Uploads land in /assets/uploads/ with
+               a safe generated name — never the visitor's filename. */
+            foreach (['hero', 'lifestyle', 'closing'] as $slot) {
+                $up = lp_take_upload('img_' . $slot);
+                if ($up)                             $LPS[$id]['images'][$slot] = $up;
+                elseif (isset($_POST['imgpath_' . $slot])) {
+                    $p = trim((string)$_POST['imgpath_' . $slot]);
+                    if ($p !== '') $LPS[$id]['images'][$slot] = $p;
+                }
+            }
+            foreach (($LPS[$id]['results'] ?? []) as $i => $_r) {
+                $up = lp_take_upload('res_img_' . $i);
+                if ($up)                                 $LPS[$id]['results'][$i]['img'] = $up;
+                elseif (isset($_POST['res_path_' . $i])) {
+                    $p = trim((string)$_POST['res_path_' . $i]);
+                    if ($p !== '') $LPS[$id]['results'][$i]['img'] = $p;
+                }
+                foreach (['name', 'result', 'weeks'] as $f) {
+                    if (isset($_POST['res_' . $f . '_' . $i])) {
+                        $LPS[$id]['results'][$i][$f] = trim(strip_tags((string)$_POST['res_' . $f . '_' . $i]));
+                    }
+                }
+            }
+            if ($uploadError) $notice = $uploadError;
+
             foreach (['hero_bg','hero_text','accent','accent_2','page_bg','ink'] as $k) {
                 $val = (string)($_POST['c_' . $k] ?? '');
                 if (preg_match('/^#[0-9a-f]{6}$/i', $val)) {
@@ -115,6 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $stats   = lp_stats7();
+$library = lp_library();
 $users   = auth_users();
 $pending = array_values(array_filter($users, fn($u) => ($u['status'] ?? '') === 'pending'));
 $active  = array_values(array_filter($users, fn($u) => ($u['status'] ?? '') === 'approved'));
@@ -244,6 +324,20 @@ $swatches = [
   .fld textarea{min-height:4.5rem;resize:vertical}
   .texts{display:grid;gap:.9rem;grid-template-columns:1fr 1fr}
   .texts .wide{grid-column:1/-1}
+
+  /* Photos in the editor. Each slot shows the picture that is actually on the
+     page right now — a filename tells you nothing about whether it's the right
+     photo. Upload a new one, or reuse one already on the server. */
+  .edh{font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);
+       font-weight:800;margin:1.75rem 0 .85rem;padding-top:1.25rem;border-top:1px solid var(--line)}
+  .pics{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.9rem;margin-bottom:1rem}
+  .pic{border:1px solid var(--line);border-radius:12px;padding:.6rem;display:grid;gap:.4rem;background:#fbfaf8}
+  .pic-img{aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:#eee}
+  .pic-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .pic label{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800}
+  .pic input[type=file]{font-size:.68rem;width:100%}
+  .pic input[type=text],.pic select{width:100%;padding:.35rem .45rem;border:1px solid var(--line);
+                                    border-radius:6px;font:inherit;font-size:.76rem;background:#fff}
   .ed footer{display:flex;align-items:center;gap:.75rem;padding:1.1rem 1.5rem;
              border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff;flex-wrap:wrap}
   .switch{display:inline-flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:800;
@@ -327,7 +421,7 @@ $swatches = [
 
     <!-- Editor for this page -->
     <dialog id="ed-<?= htmlspecialchars($id) ?>">
-      <form class="ed" method="post">
+      <form class="ed" method="post" enctype="multipart/form-data">
         <input type="hidden" name="do" value="page">
         <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
 
@@ -362,6 +456,48 @@ $swatches = [
             <?php endforeach; ?>
           </div>
 
+          <!-- Photos. Every image on the page, swappable here — upload a new one
+               or pick one already on the server. -->
+          <h4 class="edh">Photos</h4>
+          <div class="pics">
+            <?php foreach (['hero' => 'Hero portrait', 'lifestyle' => 'Lifestyle photo', 'closing' => 'Closing photo'] as $slot => $slabel):
+                  $cur = $v['images'][$slot] ?? ''; ?>
+              <div class="pic">
+                <div class="pic-img"><img src="<?= htmlspecialchars($cur) ?>" alt="" loading="lazy"></div>
+                <label><?= $slabel ?></label>
+                <input type="file" name="img_<?= $slot ?>" accept="image/jpeg,image/png,image/webp">
+                <select name="imgpath_<?= $slot ?>">
+                  <?php foreach ($library as $p): ?>
+                    <option value="<?= htmlspecialchars($p) ?>" <?= $p === $cur ? 'selected' : '' ?>>
+                      <?= htmlspecialchars(basename($p)) ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <h4 class="edh">Before &amp; after grid</h4>
+          <div class="pics">
+            <?php foreach (($v['results'] ?? []) as $i => $r): ?>
+              <div class="pic">
+                <div class="pic-img"><img src="<?= htmlspecialchars($r['img']) ?>" alt="" loading="lazy"></div>
+                <input type="file" name="res_img_<?= $i ?>" accept="image/jpeg,image/png,image/webp">
+                <select name="res_path_<?= $i ?>">
+                  <?php foreach ($library as $p): ?>
+                    <option value="<?= htmlspecialchars($p) ?>" <?= $p === $r['img'] ? 'selected' : '' ?>>
+                      <?= htmlspecialchars(basename($p)) ?>
+                    </option>
+                  <?php endforeach; ?>
+                </select>
+                <input type="text" name="res_name_<?= $i ?>"   value="<?= htmlspecialchars($r['name']) ?>"   placeholder="Name">
+                <input type="text" name="res_result_<?= $i ?>" value="<?= htmlspecialchars($r['result']) ?>" placeholder="Result">
+                <input type="text" name="res_weeks_<?= $i ?>"  value="<?= htmlspecialchars($r['weeks']) ?>"  placeholder="Timeframe">
+              </div>
+            <?php endforeach; ?>
+          </div>
+
+          <h4 class="edh">Words</h4>
           <div class="texts">
             <span class="fld">
               <label for="<?= $id ?>name">Name (only you see this)</label>
@@ -370,6 +506,11 @@ $swatches = [
             <span class="fld">
               <label for="<?= $id ?>note">When to use it</label>
               <input id="<?= $id ?>note" type="text" name="note" value="<?= htmlspecialchars($v['note'] ?? '') ?>">
+            </span>
+            <span class="fld wide">
+              <label for="<?= $id ?>video">Video URL — leave empty and no video block appears</label>
+              <input id="<?= $id ?>video" type="text" name="video" value="<?= htmlspecialchars($v['video'] ?? '') ?>"
+                     placeholder="https://player.vimeo.com/video/… or https://www.youtube.com/embed/…">
             </span>
 
             <?php foreach ($v['text'] as $k => $val):

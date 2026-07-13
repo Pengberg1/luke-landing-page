@@ -118,7 +118,11 @@
   .ll-hero .ll-sub{font-size:var(--fs-md);line-height:var(--lh-body);color:var(--text-on-dark-muted);max-width:var(--measure-tight);margin:0 0 var(--space-lg)}
   .ll-hero .lg-eyebrow{color:var(--lg-sage);margin-bottom:var(--space-md)}
   .ll-stats{display:flex;gap:var(--space-2xl);flex-wrap:wrap;margin:0 0 var(--space-xl)}
-  .ll-stats .lg-stat__num{font-size:var(--fs-2xl)}
+  .ll-stat{display:flex;align-items:center;gap:var(--space-sm)}
+  .ll-stat svg{width:1.6rem;height:1.6rem;color:var(--lg-sage);flex:none}
+  .ll-stat span{display:flex;flex-direction:column;font-size:var(--fs-xs);line-height:1.25;
+                color:var(--text-on-dark-muted);letter-spacing:.02em}
+  .ll-stat b{font-size:var(--fs-lg);font-weight:var(--fw-extrabold);color:var(--lg-offwhite);letter-spacing:-.01em}
   .ll-actions{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap}
   .ll-actions .ll-note{font-size:var(--fs-sm);color:var(--text-on-dark-muted)}
   .ll-rating{display:flex;align-items:center;gap:var(--space-sm);margin-top:var(--space-xl);font-size:var(--fs-sm);color:var(--text-on-dark-muted);flex-wrap:wrap}
@@ -131,7 +135,7 @@
      the Trustpilot line, and the Results grid below. */
   .ll-hero-media{
     position:relative;min-height:34rem;border-radius:var(--radius-xl) var(--radius-xl) 0 0;overflow:hidden;
-    background:url('/assets/luke-hero.jpg') center 20%/cover no-repeat;
+    background:url('<?= htmlspecialchars($IMG['hero'] ?? '/assets/luke-hero.jpg') ?>') center 20%/cover no-repeat;
   }
   .ll-hero-media::after{
     content:"";position:absolute;inset:0;
@@ -162,7 +166,9 @@
   .ll-social{border-block:var(--border-hairline);padding-block:var(--space-lg);background:var(--surface-card)}
   .ll-social .ll-row{display:flex;justify-content:space-around;align-items:center;gap:var(--space-lg);flex-wrap:wrap}
   .ll-social .ll-item{display:grid;justify-items:center;gap:var(--space-2xs);min-width:7rem}
-  .ll-social .ll-logotype{font-weight:var(--fw-extrabold);font-size:var(--fs-base);letter-spacing:-.01em;color:var(--lg-charcoal)}
+  .ll-social .ll-logotype{display:inline-flex;align-items:center;gap:.4rem;
+        font-weight:var(--fw-extrabold);font-size:var(--fs-base);letter-spacing:-.01em;color:var(--lg-charcoal)}
+  .ll-social .ll-logotype svg{width:1.15rem;height:1.15rem;flex:none}
   .ll-social .ll-stars{color:var(--lg-coral);font-size:.8rem;letter-spacing:.18em}
   .ll-social .ll-listen{display:inline-flex;align-items:center;gap:var(--space-xs);font-weight:var(--fw-semibold);font-size:var(--fs-sm);color:var(--lg-charcoal)}
   .ll-social .ll-listen svg{width:1.1rem;height:1.1rem;color:var(--lg-teal)}
@@ -212,7 +218,7 @@
   .ll-closing .lg-accordion__item{border-bottom-color:var(--lg-line-onteal)}
   .ll-closing .lg-accordion__head{color:var(--lg-offwhite);font-size:.95rem;padding-block:var(--space-md)}
   .ll-closing .lg-accordion__body{color:var(--text-on-dark-muted);font-size:var(--fs-sm)}
-  .ll-photo-col{position:relative;min-height:30rem;background:url('/assets/luke-hero.jpg') center 15%/cover no-repeat}
+  .ll-photo-col{position:relative;min-height:30rem;background:url('<?= htmlspecialchars($IMG['closing'] ?? '/assets/luke-hero.jpg') ?>') center 15%/cover no-repeat}
   .ll-photo-col::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,36,32,.18),rgba(16,36,32,.5))}
   .ll-cta-col{padding:var(--section-y) 0 var(--section-y) var(--space-2xl);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
   .ll-cta-col .lg-eyebrow{margin-bottom:var(--space-md)}
@@ -333,9 +339,18 @@
         <h1><?= $T['headline'] ?><span class="ll-cut"><?= $T['headline_accent'] ?></span></h1>
         <p class="ll-sub"><?= $T['sub'] ?></p>
         <div class="ll-stats">
-          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">100+</span><span class="lg-stat__label">Clients coached</span></div>
-          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">100+</span><span class="lg-stat__label">Five-star reviews</span></div>
-          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">Results</span><span class="lg-stat__label">That actually last</span></div>
+          <div class="ll-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="7" r="4"/><path d="M2 21v-1a7 7 0 0114 0v1M16 3.5a4 4 0 010 7M22 21v-1a7 7 0 00-4-6.3"/></svg>
+            <span><b>100+</b>Clients coached</span>
+          </div>
+          <div class="ll-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6.1L12 16.9 6.7 19.7l1.1-6.1L3.4 9.4l6-.8z"/></svg>
+            <span><b>100+</b>Five-star reviews</span>
+          </div>
+          <div class="ll-stat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3h8v5a4 4 0 01-8 0V3z"/><path d="M8 5H5a3 3 0 003 4M16 5h3a3 3 0 01-3 4M10 14h4v4h-4zM7 21h10"/></svg>
+            <span><b>Results</b>That actually last</span>
+          </div>
         </div>
         <div class="ll-actions">
           <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=hero" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
@@ -356,6 +371,18 @@
   </div>
 </section>
 
+<?php if ($VID !== ''): ?>
+<section class="ll-section ll-section--calm" data-screen-label="Video">
+  <div class="lg-container" style="max-width:56rem">
+    <div style="position:relative;padding-top:56.25%;border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-lift)">
+      <iframe src="<?= htmlspecialchars($VID) ?>" title="Watch Luke explain how coaching works"
+              style="position:absolute;inset:0;width:100%;height:100%;border:0"
+              allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+    </div>
+  </div>
+</section>
+<?php endif; ?>
+
 <section class="ll-section ll-section--card ll-familiar" id="coaching" data-screen-label="Sound familiar">
   <div class="lg-container">
     <div class="ll-familiar-grid">
@@ -371,7 +398,7 @@
           <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You start strong, but always fall off track</span></li>
         </ul>
       </div>
-      <div class="ll-familiar-img"><img src="/assets/lifestyle.jpg" alt="A real week — training that fits around life"></div>
+      <div class="ll-familiar-img"><img src="<?= htmlspecialchars($IMG['lifestyle'] ?? '/assets/lifestyle.jpg') ?>" alt="A real week — training that fits around life"></div>
     </div>
   </div>
 </section>
@@ -395,11 +422,16 @@
     <p class="lg-eyebrow">Client proof</p>
     <h2 style="margin-bottom:var(--space-2xl)">Real people. Real results.</h2>
     <div class="ll-results-grid">
-      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-craig.jpg" alt="Craig — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Craig</div><div class="lg-transform__result">−16.6kg</div><div class="lg-transform__weeks">12 weeks</div></figcaption></figure>
-      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-helen.jpg" alt="Helen — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Helen</div><div class="lg-transform__result">−11kg</div><div class="lg-transform__weeks">12 weeks</div></figcaption></figure>
-      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-jono.jpg" alt="Jono — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Jono</div><div class="lg-transform__result">−50lbs+</div><div class="lg-transform__weeks">6 months</div></figcaption></figure>
-      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-scott.jpg" alt="Scott — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Scott</div><div class="lg-transform__result">−45lbs</div><div class="lg-transform__weeks">5 months</div></figcaption></figure>
-      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-richie.jpg" alt="Richie — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Richie</div><div class="lg-transform__result">−14lbs</div><div class="lg-transform__weeks">8 weeks, before his wedding</div></figcaption></figure>
+      <?php foreach ($RES as $r): ?>
+        <figure class="lg-transform" style="margin:0">
+          <img src="<?= htmlspecialchars($r['img']) ?>" alt="<?= htmlspecialchars($r['name']) ?> — before and after">
+          <figcaption class="lg-transform__cap">
+            <div class="lg-transform__name"><?= htmlspecialchars($r['name']) ?></div>
+            <div class="lg-transform__result"><?= htmlspecialchars($r['result']) ?></div>
+            <div class="lg-transform__weeks"><?= htmlspecialchars($r['weeks']) ?></div>
+          </figcaption>
+        </figure>
+      <?php endforeach; ?>
     </div>
   </div>
 </section>
@@ -419,9 +451,18 @@
 
 <section class="ll-social" id="reviews" data-screen-label="Reviews bar">
   <div class="lg-container ll-row">
-    <div class="ll-item"><span class="ll-logotype">Facebook</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
-    <div class="ll-item"><span class="ll-logotype">Google</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
-    <div class="ll-item"><span class="ll-logotype">Trustpilot</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
+    <div class="ll-item">
+      <span class="ll-logotype"><svg viewBox="0 0 24 24" fill="#1877F2" aria-hidden="true"><path d="M22 12a10 10 0 10-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0022 12z"/></svg>Facebook</span>
+      <span class="ll-stars" aria-label="Five stars">★★★★★</span>
+    </div>
+    <div class="ll-item">
+      <span class="ll-logotype"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 01-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0012 22z"/><path fill="#FBBC05" d="M6.4 14c-.2-.6-.3-1.3-.3-2s.1-1.4.3-2V7.4H3.1a10 10 0 000 9.2z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.9-2.9A10 10 0 003.1 7.4L6.4 10c.8-2.3 3-4 5.6-4z"/></svg>Google</span>
+      <span class="ll-stars" aria-label="Five stars">★★★★★</span>
+    </div>
+    <div class="ll-item">
+      <span class="ll-logotype"><svg viewBox="0 0 24 24" fill="#00B67A" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8z"/></svg>Trustpilot</span>
+      <span class="ll-stars" aria-label="Five stars">★★★★★</span>
+    </div>
     <div class="ll-item"><span class="ll-listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"></path><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"></path></svg>Listen on Apple Podcasts</span></div>
     <div class="ll-item"><span class="ll-listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 15a8 8 0 017 1M7.5 12a10 10 0 019 1M7 9a13 13 0 0111 1"></path></svg>Listen on Spotify</span></div>
   </div>
