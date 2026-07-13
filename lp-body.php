@@ -12,35 +12,6 @@
 <link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/base.css">
 <link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/components.css">
 <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1A3C34"></rect><g transform="translate(28,32.5) scale(0.148) translate(-76,-78)"><path fill="#F7F5F0" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="#F7F5F0"></rect></g></svg></template>
-<?php /* Colour scheme for this variant — overrides the design-system tokens.
-   The rest of the build is untouched, so a recolour can never break the layout. */ ?>
-<style id="lp-scheme">
-  :root{
-    --lg-teal: <?= $C['hero_bg'] ?>;
-    --lg-teal-800: <?= lp_shade($C['hero_bg'], -8) ?>;
-    --lg-teal-900: <?= lp_shade($C['hero_bg'], -16) ?>;
-    --lg-coral: <?= $C['accent'] ?>;
-    --lg-coral-700: <?= lp_shade($C['accent'], -12) ?>;
-    --lg-sage: <?= $C['accent_2'] ?>;
-    --lg-offwhite: <?= $C['page_bg'] ?>;
-    --lg-charcoal: <?= $C['ink'] ?>;
-    --lg-white: <?= $C['page_bg'] ?>;
-    --text-body: <?= $C['ink'] ?>;
-    --text-muted: <?= lp_alpha($C['ink'], .62) ?>;
-    --text-on-dark: <?= $C['hero_text'] ?>;
-    --text-on-dark-muted: <?= lp_alpha($C['hero_text'], .74) ?>;
-    --surface-card: <?= lp_shade($C['page_bg'], $DARK_UI ? 7 : 4) ?>;
-    --surface-calm: <?= lp_shade($C['page_bg'], $DARK_UI ? 12 : -3) ?>;
-    --surface-dark: <?= $C['hero_bg'] ?>;
-    --border-hairline: 1px solid <?= lp_alpha($C['ink'], .14) ?>;
-    --focus-ring: <?= $C['accent'] ?>;
-    --lg-overlay-teal: <?= lp_alpha($C['hero_bg'], .55) ?>;
-  }
-  .ll-header{ background: <?= lp_alpha($C['page_bg'], .92) ?>; }
-  .ll-sticky-cta{ background: <?= lp_alpha($C['page_bg'], .95) ?>; }
-  .ll-links a, .ll-social .ll-logotype, .ll-social .ll-listen{ color: <?= $C['ink'] ?>; }
-  .lg-transform__cap, .ll-footer{ color: <?= $C['hero_text'] ?>; }
-</style>
 <style>
   /* ============================================================
      Page-level layout — every value reaches for LG tokens.
@@ -297,6 +268,39 @@
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto}
   }
+</style>
+
+<style id="lp-scheme">
+  :root{
+    --lg-teal: <?= $C['hero_bg'] ?>;
+    --lg-teal-800: <?= lp_shade($C['hero_bg'], 8) ?>;
+    --lg-teal-900: <?= lp_shade($C['hero_bg'], -18) ?>;
+    --lg-coral: <?= $C['accent'] ?>;
+    --lg-coral-700: <?= lp_shade($C['accent'], -14) ?>;
+    --lg-sage: <?= $C['accent_2'] ?>;
+    --lg-offwhite: <?= $C['hero_text'] ?>;
+    --lg-white: <?= $C['page_bg'] ?>;
+    --lg-charcoal: <?= $C['ink'] ?>;
+    --text-body: <?= $C['ink'] ?>;
+    --text-muted: <?= lp_alpha($C['ink'], .62) ?>;
+    --text-on-dark: <?= $C['hero_text'] ?>;
+    --text-on-dark-muted: <?= lp_alpha($C['hero_text'], .74) ?>;
+    --surface-card: <?= lp_shade($C['page_bg'], $DARK_UI ? 8 : 4) ?>;
+    --surface-calm: <?= lp_shade($C['page_bg'], $DARK_UI ? 14 : -3) ?>;
+    --surface-dark: <?= $C['hero_bg'] ?>;
+    --border-hairline: 1px solid <?= lp_alpha($C['ink'], .16) ?>;
+    --focus-ring: <?= $C['accent'] ?>;
+    --lg-overlay-teal: <?= lp_alpha($C['hero_bg'], .55) ?>;
+  }
+  body{ background: <?= $C['page_bg'] ?>; color: <?= $C['ink'] ?>; }
+  .ll-header{ background: <?= lp_alpha($C['page_bg'], .93) ?>; }
+  .ll-sticky-cta{ background: <?= lp_alpha($C['page_bg'], .95) ?>; }
+  .ll-links a, .ll-social .ll-logotype, .ll-social .ll-listen, .ll-brand{ color: <?= $C['ink'] ?>; }
+  .ll-hero h1, .ll-hero .lg-stat__num, .ll-rating b,
+  .ll-cta-band h2, .ll-closing h3{ color: <?= $C['hero_text'] ?>; }
+  .ll-section--card h2, .ll-section h2, .ll-how h2, .lg-tick{ color: <?= $C['ink'] ?>; }
+  .lg-accordion__head{ color: <?= $C['ink'] ?>; }
+  .ll-footer, .ll-footer a{ color: <?= lp_alpha($C['hero_text'], .8) ?>; }
 </style>
 </head>
 <body>
