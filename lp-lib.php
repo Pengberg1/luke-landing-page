@@ -132,6 +132,76 @@ function lp_create_page(array &$LPS, string $source, string $name): array {
     return [true, 'Created “' . $name . '” at ' . $path . ' — paused. Edit it, then set it live.'];
 }
 
+/* --------------------------------------------------------------------------
+ * Media slots — a hero/lifestyle/closing slot can be a photo, an uploaded MP4,
+ * or a YouTube/Vimeo link. All three fill the same container the photo did.
+ *
+ * A slot is stored as either a plain string (a path, the legacy + image case)
+ * or ['type' => 'image'|'mp4'|'embed', 'src' => '…']. lp_media() normalises both
+ * and is forgiving: it sniffs a bare URL so a pasted link still works even if it
+ * was stored as a string.
+ * ------------------------------------------------------------------------ */
+function lp_media($val): array {
+    if (is_array($val)) {
+        $t = in_array(($val['type'] ?? ''), ['image','mp4','embed'], true) ? $val['type'] : 'image';
+        return ['type' => $t, 'src' => (string)($val['src'] ?? '')];
+    }
+    $s = trim((string)$val);
+    if ($s === '')                                             return ['type' => 'image', 'src' => ''];
+    if (preg_match('~youtube\.com|youtu\.be|vimeo\.com~i', $s)) return ['type' => 'embed', 'src' => $s];
+    if (preg_match('~\.mp4($|\?)~i', $s))                      return ['type' => 'mp4',   'src' => $s];
+    return ['type' => 'image', 'src' => $s];
+}
+
+/** YouTube/Vimeo watch URL → embeddable src (keeps a &t=/start= timestamp). */
+function lp_embed_src(string $url): string {
+    if (preg_match('~(?:youtube\.com/watch\?[^ ]*v=|youtu\.be/|youtube\.com/embed/)([A-Za-z0-9_-]{6,})~i', $url, $m)) {
+        $start = '';
+        if (preg_match('~[?&](?:t|start)=(\d+)~', $url, $mm)) $start = '?start=' . $mm[1];
+        return 'https://www.youtube.com/embed/' . $m[1] . $start;
+    }
+    if (preg_match('~vimeo\.com/(?:video/)?(\d+)~i', $url, $m)) {
+        return 'https://player.vimeo.com/video/' . $m[1];
+    }
+    return $url;   // already an embed URL, or something we don't recognise
+}
+
+/**
+ * Render a media slot so it fills its container exactly like the photo it
+ * replaces. The container must be position:relative; the returned element is
+ * absolutely positioned to cover it (see the .lp-fill rule in each template).
+ *
+ * $o: ['alt' => …, 'pos' => object-position for image/mp4, 'class' => extra].
+ * Video (mp4 or embed) is interactive — the visitor presses play.
+ */
+function lp_media_fill($val, array $o = []): string {
+    $m   = lp_media($val);
+    $cls = trim('lp-fill ' . ($o['class'] ?? ''));
+    $pos = $o['pos'] ?? 'center';
+    $alt = htmlspecialchars((string)($o['alt'] ?? ''), ENT_QUOTES);
+
+    if ($m['type'] === 'embed') {
+        $src = htmlspecialchars(lp_embed_src($m['src']), ENT_QUOTES);
+        return '<iframe class="' . $cls . ' lp-fill--v" src="' . $src . '" title="' . $alt . '" loading="lazy" '
+             . 'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
+             . 'allowfullscreen></iframe>';
+    }
+    if ($m['type'] === 'mp4') {
+        $src = htmlspecialchars($m['src'], ENT_QUOTES);
+        return '<video class="' . $cls . ' lp-fill--v" controls playsinline preload="metadata" '
+             . 'style="object-position:' . htmlspecialchars($pos, ENT_QUOTES) . '">'
+             . '<source src="' . $src . '" type="video/mp4"></video>';
+    }
+    $src = htmlspecialchars($m['src'] ?: '/assets/luke-hero.jpg', ENT_QUOTES);
+    return '<img class="' . $cls . '" src="' . $src . '" alt="' . $alt . '" loading="lazy" '
+         . 'style="object-position:' . htmlspecialchars($pos, ENT_QUOTES) . '">';
+}
+
+/** True when the slot is a video (mp4/embed) — templates drop photo overlays then. */
+function lp_is_video($val): bool {
+    return in_array(lp_media($val)['type'], ['mp4', 'embed'], true);
+}
+
 /** Lighten (+) or darken (-) a hex colour by a percentage. */
 function lp_shade(string $hex, float $pct): string {
     $hex = ltrim($hex, '#');

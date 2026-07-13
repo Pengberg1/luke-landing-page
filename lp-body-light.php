@@ -104,9 +104,12 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
      below the face — the last version put a card across Luke's face and that is
      the single strongest trust signal on the page. */
   .shot{position:relative}
-  .shot .frame{border-radius:calc(var(--r) + 8px);overflow:hidden;box-shadow:var(--shadow);
+  .shot .frame{position:relative;border-radius:calc(var(--r) + 8px);overflow:hidden;box-shadow:var(--shadow);
                aspect-ratio:4/5;background:var(--tint)}
   .shot .frame img{width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+  /* Media fill — a photo, MP4 or embed covers its container identically. */
+  .lp-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border:0;display:block}
+  iframe.lp-fill{object-fit:unset}
   .chips{display:flex;gap:.75rem;margin-top:-2.2rem;padding-left:1.2rem;position:relative;z-index:2;flex-wrap:wrap}
   .chip{background:<?= lp_shade($BG, 6) ?>;border:1px solid var(--line);border-radius:16px;
         padding:.7rem 1rem;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:.6rem}
@@ -141,7 +144,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   .familiar li{list-style:none;display:flex;gap:.7rem;align-items:flex-start;color:var(--soft)}
   .familiar svg{width:1.2rem;height:1.2rem;color:var(--a);flex:none;margin-top:.28rem}
   .familiar-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(2rem,4vw,3.5rem);align-items:center}
-  .familiar-img{border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/3}
+  .familiar-img{position:relative;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/3}
   .familiar-img img{width:100%;height:100%;object-fit:cover;display:block}
 
   /* Results */
@@ -186,7 +189,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   .band p{color:var(--soft);max-width:52ch}
 
   .closing{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,4vw,4rem);align-items:center}
-  .closing-img{border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/3}
+  .closing-img{position:relative;border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);aspect-ratio:4/3}
   .closing-img img{width:100%;height:100%;object-fit:cover;display:block}
   .closing h2 em{font-style:normal;display:block;color:var(--a)}
   .closing p{color:var(--soft);margin:1rem 0 1.75rem}
@@ -275,7 +278,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
 
     <div class="shot">
       <div class="frame">
-        <img src="<?= htmlspecialchars($IMG['hero'] ?? '/assets/luke-hero.jpg') ?>" alt="Luke Goulden, online health and fitness coach">
+        <?= lp_media_fill($IMG['hero'] ?? '/assets/luke-hero.jpg', ['alt' => 'Luke Goulden, online health and fitness coach', 'pos' => 'center 18%']) ?>
       </div>
       <div class="chips">
         <div class="chip">
@@ -321,7 +324,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
       </ul>
     </div>
     <div class="familiar-img">
-      <img src="<?= htmlspecialchars($IMG['lifestyle'] ?? '/assets/lifestyle.jpg') ?>" alt="Training that fits around a real week" loading="lazy">
+      <?= lp_media_fill($IMG['lifestyle'] ?? '/assets/lifestyle.jpg', ['alt' => 'Training that fits around a real week']) ?>
     </div>
   </div>
 </section>
@@ -493,7 +496,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
 <section class="sec sec--card" data-screen-label="Closing CTA">
   <div class="wrap closing">
     <div class="closing-img">
-      <img src="<?= htmlspecialchars($IMG['closing'] ?? '/assets/lifestyle.jpg') ?>" alt="" loading="lazy">
+      <?= lp_media_fill($IMG['closing'] ?? '/assets/lifestyle.jpg', ['alt' => '']) ?>
     </div>
     <div>
       <span class="eyebrow">Start where you are</span>

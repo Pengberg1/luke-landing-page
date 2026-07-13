@@ -135,10 +135,14 @@
      the Trustpilot line, and the Results grid below. */
   .ll-hero-media{
     position:relative;min-height:34rem;border-radius:var(--radius-xl) var(--radius-xl) 0 0;overflow:hidden;
-    background:url('<?= htmlspecialchars($IMG['hero'] ?? '/assets/luke-hero.jpg') ?>') center 20%/cover no-repeat;
+    background:<?= lp_shade($C['hero_bg'], -12) ?>;
   }
-  .ll-hero-media::after{
-    content:"";position:absolute;inset:0;
+  /* Fill element (photo, video or embed) covers the panel. */
+  .lp-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border:0;display:block}
+  iframe.lp-fill{object-fit:unset}
+  /* Gradient only over a still photo — a video needs its controls clickable. */
+  .ll-hero-media.is-photo::after{
+    content:"";position:absolute;inset:0;z-index:1;
     background:linear-gradient(180deg,rgba(16,36,32,0) 40%,rgba(16,36,32,.62) 100%);
     pointer-events:none;
   }
@@ -146,7 +150,7 @@
   /* ---- Sound familiar ----------------------------------------- */
   .ll-familiar-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--space-2xl);align-items:center}
   .ll-familiar ul{list-style:none;margin:var(--space-xl) 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg) var(--space-xl)}
-  .ll-familiar-img{border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-soft)}
+  .ll-familiar-img{position:relative;min-height:22rem;border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-soft)}
   .ll-familiar-img img{width:100%;height:100%;min-height:22rem;object-fit:cover}
 
   /* ---- Imagine if --------------------------------------------- */
@@ -218,8 +222,8 @@
   .ll-closing .lg-accordion__item{border-bottom-color:var(--lg-line-onteal)}
   .ll-closing .lg-accordion__head{color:var(--lg-offwhite);font-size:.95rem;padding-block:var(--space-md)}
   .ll-closing .lg-accordion__body{color:var(--text-on-dark-muted);font-size:var(--fs-sm)}
-  .ll-photo-col{position:relative;min-height:30rem;background:url('<?= htmlspecialchars($IMG['closing'] ?? '/assets/luke-hero.jpg') ?>') center 15%/cover no-repeat}
-  .ll-photo-col::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,36,32,.18),rgba(16,36,32,.5))}
+  .ll-photo-col{position:relative;min-height:30rem;overflow:hidden;background:<?= lp_shade($C['hero_bg'], -12) ?>}
+  .ll-photo-col.is-photo::after{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(16,36,32,.18),rgba(16,36,32,.5));pointer-events:none}
   .ll-cta-col{padding:var(--section-y) 0 var(--section-y) var(--space-2xl);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
   .ll-cta-col .lg-eyebrow{margin-bottom:var(--space-md)}
   .ll-cta-col h3{font-size:var(--fs-h2);color:var(--lg-offwhite);margin-bottom:var(--space-2xs)}
@@ -366,7 +370,9 @@
           <span><b>Excellent</b> · rated 4.9 out of 5 from 100+ reviews on Trustpilot</span>
         </div>
       </div>
-      <div class="ll-hero-media" role="img" aria-label="Luke Goulden, online health and fitness coach"></div>
+      <div class="ll-hero-media <?= lp_is_video($IMG['hero'] ?? '') ? 'is-video' : 'is-photo' ?>">
+        <?= lp_media_fill($IMG['hero'] ?? '/assets/luke-hero.jpg', ['alt' => 'Luke Goulden, online health and fitness coach', 'pos' => 'center 20%']) ?>
+      </div>
     </div>
   </div>
 </section>
@@ -398,7 +404,7 @@
           <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You start strong, but always fall off track</span></li>
         </ul>
       </div>
-      <div class="ll-familiar-img"><img src="<?= htmlspecialchars($IMG['lifestyle'] ?? '/assets/lifestyle.jpg') ?>" alt="A real week — training that fits around life"></div>
+      <div class="ll-familiar-img"><?= lp_media_fill($IMG['lifestyle'] ?? '/assets/lifestyle.jpg', ['alt' => 'A real week — training that fits around life']) ?></div>
     </div>
   </div>
 </section>
@@ -581,7 +587,9 @@
           </details>
         </div>
       </div>
-      <div class="ll-photo-col" role="img" aria-label="Luke Goulden"></div>
+      <div class="ll-photo-col <?= lp_is_video($IMG['closing'] ?? '') ? 'is-video' : 'is-photo' ?>">
+        <?= lp_media_fill($IMG['closing'] ?? '/assets/luke-hero.jpg', ['alt' => 'Luke Goulden', 'pos' => 'center 15%']) ?>
+      </div>
       <div class="ll-cta-col">
         <p class="lg-eyebrow">Start where you are. Then keep going.</p>
         <h3><?= $T['closing_title'] ?><span><?= $T['closing_accent'] ?></span></h3>

@@ -57,26 +57,23 @@ function lp_admin_guard(bool $isAdmin): void {
 }
 
 /**
- * Accept one uploaded photo and return its public path, or '' if none was sent.
+ * Accept one uploaded file (a photo, or — when $allowVideo — an MP4) and return
+ * its public path, or '' if none was sent.
  *
- * Rules that matter: we trust the file's real image type (getimagesize), not its
- * name or the browser's content-type header, and we write it under a name WE
- * generate. A visitor-supplied filename is how a .php lands in a web root.
+ * Rules that matter: we trust the file's real content (getimagesize / an MP4
+ * signature), not its name or the browser's content-type, and we write it under
+ * a name WE generate. A visitor-supplied filename is how a .php lands in a web
+ * root. Photos are downscaled + recompressed so a 12MP phone shot doesn't ship
+ * full-size; the server can't transcode video, so MP4s are size-capped instead.
  */
-function lp_take_upload(string $field): string {
+function lp_take_upload(string $field, bool $allowVideo = false): string {
     global $uploadError;
 
     if (empty($_FILES[$field]['name']) || ($_FILES[$field]['error'] ?? 4) === UPLOAD_ERR_NO_FILE) {
         return '';
     }
     $f = $_FILES[$field];
-
-    if ($f['error'] !== UPLOAD_ERR_OK) { $uploadError = 'That image did not upload — try again.'; return ''; }
-    if ($f['size'] > 8 * 1024 * 1024)  { $uploadError = 'That image is over 8 MB. Shrink it first.'; return ''; }
-
-    $info = @getimagesize($f['tmp_name']);          // real content, not the filename
-    $ext  = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$info[2] ?? 0] ?? '';
-    if (!$ext) { $uploadError = 'Only JPG, PNG or WebP images, please.'; return ''; }
+    if ($f['error'] !== UPLOAD_ERR_OK) { $uploadError = 'That file did not upload — try again.'; return ''; }
 
     $dir = __DIR__ . '/assets/uploads';
     if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
@@ -84,12 +81,79 @@ function lp_take_upload(string $field): string {
         return '';
     }
 
-    $name = date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-    if (!@move_uploaded_file($f['tmp_name'], $dir . '/' . $name)) {
-        $uploadError = 'Could not save the image on the server.';
+    /* Is it a real image? */
+    $info = @getimagesize($f['tmp_name']);
+    $imgExt = [IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png', IMAGETYPE_WEBP => 'webp'][$info[2] ?? 0] ?? '';
+
+    if ($imgExt) {
+        if ($f['size'] > 12 * 1024 * 1024) { $uploadError = 'That image is over 12 MB — shrink it first.'; return ''; }
+        $name = date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.' . $imgExt;
+        $dest = $dir . '/' . $name;
+        if (!@move_uploaded_file($f['tmp_name'], $dest)) { $uploadError = 'Could not save the image.'; return ''; }
+        lp_resize_image($dest);                      // downscale + recompress if large
+        return '/assets/uploads/' . $name;
+    }
+
+    /* Otherwise, an MP4 — only where video is allowed (the media slots). */
+    if ($allowVideo) {
+        $sig = (string)@file_get_contents($f['tmp_name'], false, null, 0, 12);
+        $isMp4 = strpos($sig, 'ftyp') !== false;     // MP4/MOV box signature
+        if ($isMp4) {
+            if ($f['size'] > 25 * 1024 * 1024) {
+                $uploadError = 'That video is over 25 MB. Compress it (or use a YouTube/Vimeo link instead).';
+                return '';
+            }
+            $name = date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.mp4';
+            $dest = $dir . '/' . $name;
+            if (!@move_uploaded_file($f['tmp_name'], $dest)) { $uploadError = 'Could not save the video.'; return ''; }
+            return '/assets/uploads/' . $name;
+        }
+        $uploadError = 'That file type isn’t supported — use a JPG/PNG/WebP image or an MP4 video.';
         return '';
     }
-    return '/assets/uploads/' . $name;
+
+    $uploadError = 'Only JPG, PNG or WebP images, please.';
+    return '';
+}
+
+/**
+ * Downscale + recompress a large photo in place, using GD if it's available.
+ * No-op when GD is missing or the image is already within bounds — so it never
+ * breaks an upload, it just makes big ones smaller.
+ */
+function lp_resize_image(string $path, int $maxW = 1600, int $maxH = 2000): void {
+    if (!function_exists('imagecreatetruecolor')) return;      // GD not installed — leave as-is
+    $info = @getimagesize($path);
+    if (!$info) return;
+    [$w, $h] = $info;
+    if ($w <= $maxW && $h <= $maxH) return;                    // already small enough
+
+    $scale = min($maxW / $w, $maxH / $h);
+    $nw = max(1, (int) round($w * $scale));
+    $nh = max(1, (int) round($h * $scale));
+
+    switch ($info[2]) {
+        case IMAGETYPE_JPEG: $src = @imagecreatefromjpeg($path); break;
+        case IMAGETYPE_PNG:  $src = @imagecreatefrompng($path);  break;
+        case IMAGETYPE_WEBP: $src = @imagecreatefromwebp($path); break;
+        default: return;
+    }
+    if (!$src) return;
+
+    $dst = imagecreatetruecolor($nw, $nh);
+    if (in_array($info[2], [IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+        imagealphablending($dst, false);
+        imagesavealpha($dst, true);
+    }
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+
+    switch ($info[2]) {
+        case IMAGETYPE_JPEG: imagejpeg($dst, $path, 82); break;
+        case IMAGETYPE_PNG:  imagepng($dst, $path, 6);   break;
+        case IMAGETYPE_WEBP: imagewebp($dst, $path, 82); break;
+    }
+    imagedestroy($src);
+    imagedestroy($dst);
 }
 
 /** Every photo already on the server — so you can reuse one without re-uploading. */
@@ -227,11 +291,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                that is already on the server. Uploads land in /assets/uploads/ with
                a safe generated name — never the visitor's filename. */
             foreach (['hero', 'lifestyle', 'closing'] as $slot) {
-                $up = lp_take_upload('img_' . $slot);
-                if ($up)                             $LPS[$id]['images'][$slot] = $up;
-                elseif (isset($_POST['imgpath_' . $slot])) {
-                    $p = trim((string)$_POST['imgpath_' . $slot]);
-                    if ($p !== '') $LPS[$id]['images'][$slot] = $p;
+                /* Precedence: a newly uploaded file wins, then a pasted URL
+                   (YouTube/Vimeo/MP4/image), then a pick from the library. The
+                   library <select> defaults to a blank "keep current" option, so
+                   leaving the slot untouched never clobbers a video with an image.
+                   lp_media() sniffs the stored string, so we just store the raw
+                   path or URL — no type flag needed. */
+                $up  = lp_take_upload('img_' . $slot, true);
+                $url = trim((string)($_POST['imgurl_' . $slot] ?? ''));
+                $lib = trim((string)($_POST['imgpath_' . $slot] ?? ''));
+
+                if ($up !== '') {
+                    $LPS[$id]['images'][$slot] = $up;
+                } elseif ($url !== '') {
+                    if (filter_var($url, FILTER_VALIDATE_URL)) {
+                        $LPS[$id]['images'][$slot] = $url;
+                    } else {
+                        $uploadError = 'That media link isn’t a valid URL.';
+                    }
+                } elseif ($lib !== '') {
+                    $LPS[$id]['images'][$slot] = $lib;
                 }
             }
             foreach (($LPS[$id]['results'] ?? []) as $i => $_r) {
@@ -413,6 +492,8 @@ $swatches = [
   .pic{border:1px solid var(--line);border-radius:12px;padding:.6rem;display:grid;gap:.4rem;background:#fbfaf8}
   .pic-img{aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:#eee}
   .pic-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .pic-vid{width:100%;height:100%;display:grid;place-items:center;background:var(--teal);
+           color:#fff;font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
   .pic label{font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800}
   .pic input[type=file]{font-size:.68rem;width:100%}
   .pic input[type=text],.pic select{width:100%;padding:.35rem .45rem;border:1px solid var(--line);
@@ -570,20 +651,34 @@ $swatches = [
             <?php endforeach; ?>
           </div>
 
-          <!-- Photos. Every image on the page, swappable here — upload a new one
-               or pick one already on the server. -->
-          <h4 class="edh">Photos</h4>
+          <!-- Media. Each slot can be a photo, an uploaded MP4, or a YouTube /
+               Vimeo link. Photos are auto-resized on upload. -->
+          <h4 class="edh">Photos &amp; video</h4>
+          <p style="margin:-.4rem 0 .9rem;color:var(--muted);font-size:.78rem">
+            Upload a photo or an MP4, or paste a YouTube/Vimeo link — it fills the same spot.
+            Big photos are shrunk automatically; keep MP4s under 25&nbsp;MB (or use a link).
+          </p>
           <div class="pics">
-            <?php foreach (['hero' => 'Hero portrait', 'lifestyle' => 'Lifestyle photo', 'closing' => 'Closing photo'] as $slot => $slabel):
-                  $cur = $v['images'][$slot] ?? ''; ?>
+            <?php foreach (['hero' => 'Hero', 'lifestyle' => 'Lifestyle', 'closing' => 'Closing'] as $slot => $slabel):
+                  $cur = $v['images'][$slot] ?? '';
+                  $curType = lp_media($cur)['type'];
+                  $inLib   = in_array($cur, $library, true); ?>
               <div class="pic">
-                <div class="pic-img"><img src="<?= htmlspecialchars($cur) ?>" alt="" loading="lazy"></div>
+                <div class="pic-img">
+                  <?php if ($curType === 'image'): ?>
+                    <img src="<?= htmlspecialchars(is_string($cur) ? $cur : '') ?>" alt="" loading="lazy">
+                  <?php else: ?>
+                    <div class="pic-vid"><span><?= $curType === 'embed' ? '▶ Video link' : '▶ MP4 video' ?></span></div>
+                  <?php endif; ?>
+                </div>
                 <label><?= $slabel ?></label>
-                <input type="file" name="img_<?= $slot ?>" accept="image/jpeg,image/png,image/webp">
+                <input type="file" name="img_<?= $slot ?>" accept="image/jpeg,image/png,image/webp,video/mp4">
+                <input type="text" name="imgurl_<?= $slot ?>" placeholder="…or paste a YouTube/Vimeo link">
                 <select name="imgpath_<?= $slot ?>">
+                  <option value="">— keep current —</option>
                   <?php foreach ($library as $p): ?>
-                    <option value="<?= htmlspecialchars($p) ?>" <?= $p === $cur ? 'selected' : '' ?>>
-                      <?= htmlspecialchars(basename($p)) ?>
+                    <option value="<?= htmlspecialchars($p) ?>" <?= ($inLib && $p === $cur) ? 'selected' : '' ?>>
+                      reuse: <?= htmlspecialchars(basename($p)) ?>
                     </option>
                   <?php endforeach; ?>
                 </select>
