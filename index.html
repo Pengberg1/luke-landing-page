@@ -568,6 +568,37 @@
         sticky.setAttribute('aria-hidden', heroVisible ? 'true' : 'false');
       }, { rootMargin: '-40% 0px 0px 0px' }).observe(hero);
     }
+
+    /* ---- Measurement -------------------------------------------------
+       First-party, cookieless. Answers the only question this page owns:
+       of everyone who saw it, how many went to the application form — and
+       which CTA earned the click. sendBeacon so a click is never delayed
+       by tracking. No cookies, no IPs, no consent banner required. */
+    function beacon(params) {
+      try {
+        var url = 'track.php?' + params + '&t=' + Date.now();
+        if (navigator.sendBeacon) { navigator.sendBeacon(url); }
+        else { (new Image()).src = url; }
+      } catch (err) { /* tracking must never break the page */ }
+    }
+
+    var campaign = '';
+    try {
+      campaign = new URLSearchParams(window.location.search).get('utm_source') || '';
+    } catch (err) {}
+
+    beacon('e=view&r=' + encodeURIComponent(document.referrer || '') +
+           '&s=' + encodeURIComponent(campaign));
+
+    document.querySelectorAll('a[href*="lukegoulden.com/contact"]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        var id = '';
+        try {
+          id = new URL(link.href).searchParams.get('utm_content') || '';
+        } catch (err) {}
+        if (id) { beacon('e=cta&c=' + encodeURIComponent(id)); }
+      });
+    });
   })();
 </script>
 

@@ -1,0 +1,30 @@
+# Luke Goulden Coaching — landing page (static) + first-party tracker.
+
+# Run PHP on the current stable interpreter (Simply.com convention).
+AddType application/x-httpd-php-latest .php
+
+DirectoryIndex index.html index.php
+
+# The raw event log is not personal data, but there's no reason for anyone
+# to read it: the dashboard (stats.php) is the only intended way in.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^lgc-data/ - [F,L]
+</IfModule>
+
+# Belt and braces if mod_rewrite is unavailable.
+<FilesMatch "\.csv$">
+  Require all denied
+</FilesMatch>
+
+# Cache the heavy, unchanging assets; never cache the page itself, so edits
+# go live immediately rather than sitting in someone's browser cache.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType text/css "access plus 1 month"
+  ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
