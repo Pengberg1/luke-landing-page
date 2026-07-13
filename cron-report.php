@@ -118,7 +118,7 @@ $body = '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F7F5F0
   <tr><td style="padding:30px">
     <p style="margin:0 0 22px;color:#1E1E1E;font-size:15px;line-height:1.6">
       How <b>lukegouldencoaching.com</b> performed at its one job this week: turning visitors into
-      applications on lukegoulden.com/contact/.
+      booked calls on Calendly.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:26px">
@@ -131,7 +131,7 @@ $body = '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F7F5F0
         <td width="8"></td>
         <td width="33%" style="padding:14px;background:#F7F5F0;border-radius:10px" align="center">
           <div style="font-size:26px;font-weight:800;color:#1A3C34">' . number_format($now['clicks']) . '</div>
-          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6b6b6b;margin-top:4px">Clicked to apply</div>
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6b6b6b;margin-top:4px">Clicked to book</div>
           <div style="font-size:11px;margin-top:6px">' . arrow($chg['clicks']) . '</div>
         </td>
         <td width="8"></td>
@@ -160,7 +160,7 @@ $body = '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#F7F5F0
   </td></tr>
 
   <tr><td style="padding:18px 30px;background:#F7F5F0;color:#6b6b6b;font-size:11px">
-    lukegouldencoaching.com → lukegoulden.com/contact/ · no cookies, no personal data collected
+    lukegouldencoaching.com → Calendly booking · no cookies, no personal data collected
   </td></tr>
 
 </table></td></tr></table></body></html>';

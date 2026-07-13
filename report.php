@@ -233,7 +233,7 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
   <h1>Landing page performance</h1>
   <p class="lede">
     How <b>lukegouldencoaching.com</b> performed at its one job this week: turning visitors into
-    applications on <b>lukegoulden.com/contact/</b>.
+    booked calls on Calendly.
   </p>
 
   <div class="actions">
@@ -249,7 +249,7 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     </div>
     <div class="kpi">
       <div class="n"><?= number_format($this7['clicks']) ?></div>
-      <div class="l">Clicked through to apply</div>
+      <div class="l">Clicked through to book</div>
       <?= chip($dClicks) ?>
     </div>
     <div class="kpi kpi--hero">
@@ -331,18 +331,18 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
   <div class="read">
     <h3>How to read this</h3>
     <p><b>Click-through rate is the number this page controls.</b> Of everyone who landed here, this is the share
-      who went on to the application form. If it falls, the page needs work. If visits fall but the rate holds,
+      who went on to the booking page. If it falls, the page needs work. If visits fall but the rate holds,
       the page is fine — the traffic dried up.</p>
-    <p><b>What happens after the click is on Luke's side.</b> Compare the clicks above with the applications
-      received in Gravity Forms: clicks in, applications out. A big gap means the form — not this page — is where
-      people are being lost.</p>
+    <p><b>What happens after the click is on Luke's side.</b> Compare the clicks above with the calls that
+      actually land in his Calendly: clicks in, calls booked out. A big gap means the booking page — not this
+      page — is where people are dropping off.</p>
     <p><b>Privacy:</b> no cookies, no IP addresses, no personal data. Nothing here can identify a visitor, which is
       why the page carries no consent banner.</p>
   </div>
 
   <div class="foot">
     <span>Luke Goulden Coaching — landing page report</span>
-    <span>lukegouldencoaching.com → lukegoulden.com/contact/</span>
+    <span>lukegouldencoaching.com → Calendly booking</span>
   </div>
 
 </div></body></html>
