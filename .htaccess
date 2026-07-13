@@ -6,8 +6,14 @@ DirectoryIndex index.html index.php
 <IfModule mod_rewrite.c>
   RewriteEngine On
 
-  # Pretty report link — /report/results  →  report.php?k=results
-  # This is the URL that gets sent to Luke, so it must not look like plumbing.
+  # Pretty report links. This is the URL that gets sent to Luke, so it must
+  # not look like plumbing.
+  #   /report/          → the report (simplest thing to remember or type)
+  #   /report/results   → same thing; kept so links already sent keep working
+  # Anyone with the URL can read it — it holds only aggregate view/click
+  # counts, no personal data — and robots.txt + a noindex tag keep it out of
+  # search. If it ever needs locking down, delete the bare /report/ rule below.
+  RewriteRule ^report/?$ report.php?k=results [L,QSA]
   RewriteRule ^report/([A-Za-z0-9_\-]+)/?$ report.php?k=$1 [L,QSA]
 
   # The raw event log isn't personal data, but there's no reason to serve it.

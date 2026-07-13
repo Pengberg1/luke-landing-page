@@ -20,7 +20,8 @@ if (!in_array($_GET['k'] ?? '', SHARE_KEYS, true)) {
     exit('Not found');
 }
 
-const DS = '_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
+/* Absolute, so the fonts still resolve when this is served from /report/. */
+const DS = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
 
 $ctaLabels = [
     'hero'           => 'Hero — above the fold',

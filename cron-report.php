@@ -14,7 +14,7 @@
 const CRON_KEY  = 'lgc-cron-2026';
 const MAIL_TO   = 'kempandersen@gmail.com';
 const MAIL_FROM = 'rapport@lukegouldencoaching.com';
-const LIVE_URL  = 'https://lukegouldencoaching.com/report/results';
+const LIVE_URL  = 'https://lukegouldencoaching.com/report/';
 
 if (($_GET['key'] ?? '') !== CRON_KEY) {
     header('HTTP/1.1 404 Not Found');
