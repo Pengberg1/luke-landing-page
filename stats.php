@@ -9,12 +9,7 @@
  * came from.
  */
 
-const ACCESS_KEY = 'lgc-2026-nJ7xQ4';
-
-if (($_GET['key'] ?? '') !== ACCESS_KEY) {
-    header('HTTP/1.1 404 Not Found');
-    exit('Not found');
-}
+require __DIR__ . '/auth.php';   // private — same sign-in as the report
 
 $dir  = __DIR__ . '/lgc-data';
 $days = max(1, min(365, (int)($_GET['days'] ?? 30)));
@@ -102,7 +97,7 @@ function pct($n, $d) { return $d > 0 ? round(($n / $d) * 100, 1) : 0; }
 
 <p class="filters">
   <?php foreach ([7, 30, 90] as $d): ?>
-    <a class="<?= $d === $days ? 'on' : '' ?>" href="?key=<?= urlencode(ACCESS_KEY) ?>&amp;days=<?= $d ?>"><?= $d ?> days</a>
+    <a class="<?= $d === $days ? 'on' : '' ?>" href="?days=<?= $d ?>"><?= $d ?> days</a>
   <?php endforeach; ?>
 </p>
 

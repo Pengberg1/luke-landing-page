@@ -10,15 +10,10 @@
  * brand-correct document with no dashboard chrome.
  */
 
-/* Accepted keys. The pretty path /report/<key> rewrites to ?k=<key>, so
-   "results" is what Luke actually sees in the URL bar. The old key still
-   works so nothing already sent breaks. */
-const SHARE_KEYS = ['results', 'lgc-live-2026'];
-
-if (!in_array($_GET['k'] ?? '', SHARE_KEYS, true)) {
-    header('HTTP/1.1 404 Not Found');
-    exit('Not found');
-}
+/* Private. auth.php renders the sign-in screen and stops here if the visitor
+   isn't signed in. The Friday job still reads ?format=json&key=… without a
+   login, because automation can't type a password. */
+require __DIR__ . '/auth.php';
 
 /* Absolute, so the fonts still resolve when this is served from /report/. */
 const DS = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
@@ -240,7 +235,13 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
   <div class="actions">
     <button class="btn" onclick="window.print()">Save as PDF</button>
     <a class="btn btn--ghost" href="https://lukegouldencoaching.com/" target="_blank" rel="noopener">View the page</a>
+    <a class="btn btn--ghost" href="?logout=1">Sign out</a>
   </div>
+  <?php $me = auth_user(); if ($me): ?>
+    <p style="margin:-1.25rem 0 2rem;font-size:.78rem;color:var(--muted)">
+      Signed in as <?= htmlspecialchars($me['name']) ?> · <?= htmlspecialchars($me['email']) ?>
+    </p>
+  <?php endif; ?>
 
   <div class="kpis">
     <div class="kpi">
