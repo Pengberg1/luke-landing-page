@@ -14,6 +14,8 @@
    isn't signed in. The Friday job still reads ?format=json&key=… without a
    login, because automation can't type a password. */
 require __DIR__ . '/auth.php';
+require_once __DIR__ . '/nav.php';
+require_once __DIR__ . '/lp-lib.php';
 
 /* Absolute, so the fonts still resolve when this is served from /report/. */
 const DS = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
@@ -28,11 +30,11 @@ $ctaLabels = [
 ];
 
 /** Read events between two UTC dates (inclusive start, exclusive end). */
-function readWindow(DateTime $from, DateTime $to): array {
+function readWindow(DateTime $from, DateTime $to, string $onlyLp = ''): array {
     $out = [
         'views' => 0, 'clicks' => 0,
         'cta' => [], 'device' => ['m' => ['v'=>0,'c'=>0], 'd' => ['v'=>0,'c'=>0]],
-        'ref' => [], 'days' => [],
+        'ref' => [], 'days' => [], 'lp' => [],
     ];
     foreach (glob(__DIR__ . '/lgc-data/events-*.csv') ?: [] as $file) {
         $fh = @fopen($file, 'r');
@@ -40,8 +42,13 @@ function readWindow(DateTime $from, DateTime $to): array {
         while (($row = fgetcsv($fh)) !== false) {
             if (count($row) < 6) continue;
             [$ts, $event, $cta, $device, $ref] = $row;
+            $lp = $row[6] ?? '01';          // events logged before variants existed = '01'
             try { $when = new DateTime($ts, new DateTimeZone('UTC')); } catch (Exception $e) { continue; }
             if ($when < $from || $when >= $to) continue;
+            if ($onlyLp !== '' && $lp !== $onlyLp) continue;
+
+            if (!isset($out['lp'][$lp])) $out['lp'][$lp] = ['v' => 0, 'c' => 0];
+            $out['lp'][$lp][$event === 'view' ? 'v' : 'c']++;
 
             $day = substr($ts, 0, 10);
             if (!isset($out['days'][$day])) $out['days'][$day] = ['v' => 0, 'c' => 0];
@@ -76,8 +83,10 @@ $start  = (clone $end)->modify('-7 days');
 $prevEnd   = clone $start;
 $prevStart = (clone $prevEnd)->modify('-7 days');
 
-$this7 = readWindow($start, $end);
-$prev7 = readWindow($prevStart, $prevEnd);
+$lpFilter = preg_match('/^[0-9]{2}$/', (string)($_GET['lp'] ?? '')) ? (string)$_GET['lp'] : '';
+$this7 = readWindow($start, $end, $lpFilter);
+$prev7 = readWindow($prevStart, $prevEnd, $lpFilter);
+$LPS   = lp_variants();
 
 $ctrNow  = ctr($this7);
 $ctrPrev = ctr($prev7);
@@ -106,6 +115,7 @@ if (($_GET['format'] ?? '') === 'json') {
         'by_device'   => $this7['device'],
         'referrers'   => array_slice($this7['ref'], 0, 10, true),
         'by_day'      => $this7['days'],
+        'by_landing_page' => $this7['lp'],
     ], JSON_PRETTY_PRINT);
     exit;
 }
@@ -191,7 +201,13 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
   .foot{margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--line);
         font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
 
-  .actions{display:flex;gap:.6rem;margin-bottom:2rem}
+  .actions{display:flex;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap}
+  .lpfilter{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:2rem}
+  .lpfilter a{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+              text-decoration:none;color:var(--teal);border:1px solid var(--line);
+              padding:.4rem .8rem;border-radius:99px;background:#fff}
+  .lpfilter a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .lpfilter a.off{opacity:.55}
   .btn{display:inline-flex;align-items:center;gap:.4rem;border:0;cursor:pointer;
        background:var(--coral);color:#fff;font:inherit;font-weight:700;font-size:.78rem;
        letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.15rem;border-radius:4px}
@@ -209,6 +225,7 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     h2{break-after:avoid}
   }
 </style></head><body>
+<?php lgc_nav('report'); ?>
 <div class="sheet">
 
   <div class="mast">
@@ -236,6 +253,14 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     <button class="btn" onclick="window.print()">Save as PDF</button>
     <a class="btn btn--ghost" href="https://lukegouldencoaching.com/" target="_blank" rel="noopener">View the page</a>
     <a class="btn btn--ghost" href="?logout=1">Sign out</a>
+  </div>
+
+  <div class="lpfilter">
+    <a class="<?= $lpFilter === '' ? 'on' : '' ?>" href="?">All pages</a>
+    <?php foreach ($LPS as $id => $v): ?>
+      <a class="<?= $lpFilter === $id ? 'on' : '' ?><?= empty($v['live']) ? ' off' : '' ?>"
+         href="?lp=<?= $id ?>"><?= htmlspecialchars($v['name']) ?><?= empty($v['live']) ? ' · paused' : '' ?></a>
+    <?php endforeach; ?>
   </div>
   <?php $me = auth_user(); if ($me): ?>
     <p style="margin:-1.25rem 0 2rem;font-size:.78rem;color:var(--muted)">
@@ -283,6 +308,28 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
           </tr>
         <?php endforeach; ?>
       </table>
+    <?php endif; ?>
+
+    <h2>Which landing page converts</h2>
+    <?php if (!$this7['lp']): ?>
+      <div class="empty">No traffic on any page yet.</div>
+    <?php else: ?>
+      <table>
+        <tr><th>Landing page</th><th>Address</th><th class="num">Saw</th><th class="num">Clicked</th><th class="num">Click-through rate</th></tr>
+        <?php foreach ($this7['lp'] as $id => $x):
+              $v = $LPS[$id] ?? ['name' => 'Page ' . $id, 'path' => '/']; ?>
+          <tr>
+            <td><b><?= htmlspecialchars($v['name']) ?></b><?= empty($v['live']) ? ' <span style="color:var(--muted);font-size:.8em">(paused)</span>' : '' ?></td>
+            <td style="color:var(--muted);font-size:.85em"><?= htmlspecialchars($v['path'] ?? '/') ?></td>
+            <td class="num"><?= number_format($x['v']) ?></td>
+            <td class="num"><?= number_format($x['c']) ?></td>
+            <td class="num"><?= pct($x['c'], $x['v']) ?>%</td>
+          </tr>
+        <?php endforeach; ?>
+      </table>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.6rem">
+        Compare the rate, not the totals — the page with more visitors isn’t necessarily the better page.
+      </p>
     <?php endif; ?>
 
     <h2>Mobile vs desktop</h2>

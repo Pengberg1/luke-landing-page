@@ -65,6 +65,13 @@ if (!empty($_GET['s'])) {
     $src = substr(preg_replace('/[^a-z0-9_\-]/i', '', $_GET['s']), 0, 40);
 }
 
+// WHICH landing page produced this event. Without it, running several campaign
+// variants at once would blend into one meaningless average.
+$lp = '01';
+if (!empty($_GET['lp']) && preg_match('/^[0-9]{2}$/', (string)$_GET['lp'])) {
+    $lp = (string)$_GET['lp'];
+}
+
 // --- Append the event ---
 $dir = __DIR__ . '/lgc-data';
 if (!is_dir($dir)) {
@@ -78,14 +85,17 @@ if (file_exists($file) && filesize($file) > 8 * 1024 * 1024) {
     done();
 }
 
+/* Column 7 (lp) was added later; readers default to '01' when it's absent, so
+   the events logged before variants existed still make sense. */
 $row = sprintf(
-    "%s,%s,%s,%s,%s,%s\n",
+    "%s,%s,%s,%s,%s,%s,%s\n",
     gmdate('Y-m-d H:i:s'),
     $event,
     $cta,
     $device,
     $ref,
-    $src
+    $src,
+    $lp
 );
 
 @file_put_contents($file, $row, FILE_APPEND | LOCK_EX);

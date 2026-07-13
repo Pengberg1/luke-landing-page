@@ -10,6 +10,7 @@
  */
 
 require __DIR__ . '/auth.php';   // private — same sign-in as the report
+require_once __DIR__ . '/nav.php';
 
 $dir  = __DIR__ . '/lgc-data';
 $days = max(1, min(365, (int)($_GET['days'] ?? 30)));
@@ -90,7 +91,9 @@ function pct($n, $d) { return $d > 0 ? round(($n / $d) * 100, 1) : 0; }
   .filters a{display:inline-block;margin-right:.5rem;padding:.3rem .7rem;border:1px solid var(--line);
              border-radius:99px;text-decoration:none;color:var(--teal);font-size:.8rem}
   .filters a.on{background:var(--teal);color:#fff;border-color:var(--teal)}
-</style></head><body><div class="wrap">
+</style></head><body>
+<?php lgc_nav('report'); ?>
+<div class="wrap">
 
 <h1>Landing page performance</h1>
 <p class="sub">lukegouldencoaching.com → lukegoulden.com/contact/ · last <?= $days ?> days · times UTC</p>

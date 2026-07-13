@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luke Goulden Coaching — Real Change. Real Results. Built for Real Life.</title>
+<meta name="description" content="Personalised coaching, accountability and support for busy parents and professionals over 30 — sustainable results that actually last.">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/fonts.css">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/colors.css">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/typography.css">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/spacing.css">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/base.css">
+<link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/components.css">
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1A3C34"></rect><g transform="translate(28,32.5) scale(0.148) translate(-76,-78)"><path fill="#F7F5F0" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="#F7F5F0"></rect></g></svg></template>
+<?php /* Colour scheme for this variant — overrides the design-system tokens.
+   The rest of the build is untouched, so a recolour can never break the layout. */ ?>
+<style id="lp-scheme">
+  :root{
+    --lg-teal: <?= $C['hero_bg'] ?>;
+    --lg-teal-800: <?= lp_shade($C['hero_bg'], -8) ?>;
+    --lg-teal-900: <?= lp_shade($C['hero_bg'], -16) ?>;
+    --lg-coral: <?= $C['accent'] ?>;
+    --lg-coral-700: <?= lp_shade($C['accent'], -12) ?>;
+    --lg-sage: <?= $C['accent_2'] ?>;
+    --lg-offwhite: <?= $C['page_bg'] ?>;
+    --lg-charcoal: <?= $C['ink'] ?>;
+    --lg-white: <?= $C['page_bg'] ?>;
+    --text-body: <?= $C['ink'] ?>;
+    --text-muted: <?= lp_alpha($C['ink'], .62) ?>;
+    --text-on-dark: <?= $C['hero_text'] ?>;
+    --text-on-dark-muted: <?= lp_alpha($C['hero_text'], .74) ?>;
+    --surface-card: <?= lp_shade($C['page_bg'], $DARK_UI ? 7 : 4) ?>;
+    --surface-calm: <?= lp_shade($C['page_bg'], $DARK_UI ? 12 : -3) ?>;
+    --surface-dark: <?= $C['hero_bg'] ?>;
+    --border-hairline: 1px solid <?= lp_alpha($C['ink'], .14) ?>;
+    --focus-ring: <?= $C['accent'] ?>;
+    --lg-overlay-teal: <?= lp_alpha($C['hero_bg'], .55) ?>;
+  }
+  .ll-header{ background: <?= lp_alpha($C['page_bg'], .92) ?>; }
+  .ll-sticky-cta{ background: <?= lp_alpha($C['page_bg'], .95) ?>; }
+  .ll-links a, .ll-social .ll-logotype, .ll-social .ll-listen{ color: <?= $C['ink'] ?>; }
+  .lg-transform__cap, .ll-footer{ color: <?= $C['hero_text'] ?>; }
+</style>
+<style>
+  /* ============================================================
+     Page-level layout — every value reaches for LG tokens.
+     Namespaced .ll-* (Luke landing) to avoid colliding with .lg-*
+     ============================================================ */
+
+  /* ---- Header ------------------------------------------------ */
+  .ll-header{
+    position:sticky;top:0;z-index:var(--z-header);
+    background:rgba(247,245,240,.86);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border-bottom:var(--border-hairline);
+  }
+  .ll-nav{display:flex;align-items:center;justify-content:space-between;gap:var(--space-lg);min-height:4.75rem}
+
+  /* Anchor offset — the header is sticky (4.75rem), so without this every
+     in-page link parks its target underneath it. Most visible on the thin
+     Reviews bar, which would land fully hidden and read as a broken link. */
+  html{scroll-padding-top:6.25rem}
+  section[id]{scroll-margin-top:6.25rem}
+
+  /* ============================================================
+     CTA SYSTEM — the page exists to drive booked calls.
+     Every persuasion peak (desire, proof, value, objections-cleared)
+     gets an exit to the Calendly booking. Microcopy kills the three
+     friction points: time cost, commitment fear, and "who am I talking to".
+     ============================================================ */
+
+  /* Reassurance line under every CTA. Every claim must stay true of the
+     DESTINATION — currently Calendly ("Online Coaching Discovery Call"),
+     where the visitor picks a slot instantly. The old "replies within 24
+     hours" line was true of the contact form and is now false; if the
+     destination ever changes again, this line changes with it. */
+  .ll-cta-trust{
+    display:flex;align-items:center;justify-content:center;gap:var(--space-sm);
+    flex-wrap:wrap;margin-top:var(--space-sm);
+    font-size:var(--fs-sm);color:var(--text-muted);
+  }
+  .ll-cta-trust span{display:inline-flex;align-items:center;gap:.35rem;white-space:nowrap}
+  .ll-cta-trust svg{width:.95rem;height:.95rem;color:var(--lg-sage);flex:none}
+  .ll-cta-trust--ondark{color:var(--text-on-dark-muted)}
+  .ll-cta-trust--ondark svg{color:var(--lg-sage)}
+
+  /* Mid-page conversion band — pattern interrupt on teal, placed straight
+     after the proof grid where intent peaks. */
+  .ll-cta-band{background:var(--lg-teal);color:var(--text-on-dark);text-align:center}
+  .ll-cta-band .ll-inner{padding-block:var(--section-y-sm);display:grid;justify-items:center;gap:var(--space-md)}
+  .ll-cta-band h2{color:var(--lg-offwhite);font-size:var(--fs-xl);max-width:24ch;margin:0}
+  .ll-cta-band h2 em{font-style:normal;color:var(--lg-sage)}
+  .ll-cta-band p{color:var(--text-on-dark-muted);max-width:52ch;margin:0}
+
+  /* Quiet inline CTA — closes the value section without shouting. */
+  .ll-cta-inline{display:grid;justify-items:center;gap:var(--space-xs);margin-top:var(--space-2xl);text-align:center}
+
+  /* Sticky mobile CTA — paid social lands mostly on phones; keep the
+     action in the thumb zone at all times. Revealed once the hero CTA
+     scrolls away (JS toggles .is-on) so it never double-stacks. */
+  .ll-sticky-cta{
+    position:fixed;left:0;right:0;bottom:0;z-index:var(--z-header);
+    display:none;align-items:center;gap:var(--space-md);
+    padding:var(--space-sm) var(--space-md);
+    padding-bottom:calc(var(--space-sm) + env(safe-area-inset-bottom,0px));
+    background:rgba(247,245,240,.94);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+    border-top:var(--border-hairline);
+    transform:translateY(110%);transition:transform .28s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ll-sticky-cta.is-on{transform:translateY(0)}
+  .ll-sticky-cta .ll-sticky-copy{flex:1;min-width:0;line-height:1.25}
+  .ll-sticky-cta .ll-sticky-copy b{display:block;color:var(--lg-teal);font-size:.92rem;font-weight:var(--fw-bold)}
+  .ll-sticky-cta .ll-sticky-copy span{display:block;color:var(--text-muted);font-size:.72rem}
+  .ll-sticky-cta .lg-btn{flex:none}
+  @media(max-width:64em){ .ll-sticky-cta{display:flex} }
+  @media (prefers-reduced-motion: reduce){ .ll-sticky-cta{transition:none} }
+  .ll-brand{display:inline-flex;align-items:center;gap:var(--space-sm);color:var(--lg-teal)}
+  .ll-brand svg{height:1.45rem;width:auto}
+  .ll-brand .ll-wordmark{
+    font-weight:var(--fw-medium);font-size:.92rem;
+    letter-spacing:var(--tr-wordmark);text-transform:uppercase;white-space:nowrap;
+  }
+  .ll-links{display:flex;align-items:center;gap:var(--space-xl);list-style:none;margin:0;padding:0}
+  .ll-links a{
+    font-size:.72rem;font-weight:var(--fw-bold);letter-spacing:var(--tr-caps);
+    text-transform:uppercase;color:var(--lg-charcoal);
+    transition:color var(--dur-base) var(--ease-soft);
+  }
+  .ll-links a:hover{color:var(--lg-coral)}
+  .ll-burger{display:none;background:none;border:0;cursor:pointer;padding:var(--space-xs);color:var(--lg-teal)}
+
+  /* ---- Sections ---------------------------------------------- */
+  .ll-section{padding-block:var(--section-y)}
+  .ll-section--dark{background:var(--surface-dark);color:var(--text-on-dark)}
+  .ll-section--dark :where(h1,h2,h3,h4){color:var(--text-on-dark)}
+  .ll-section--dark p{color:var(--text-on-dark-muted)}
+  .ll-section--calm{background:var(--surface-calm)}
+  .ll-section--card{background:var(--surface-card)}
+
+  /* ---- Hero --------------------------------------------------- */
+  .ll-hero{background:var(--lg-teal);color:var(--text-on-dark);overflow:hidden}
+  .ll-hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--space-2xl);align-items:stretch;padding-top:var(--space-3xl)}
+  .ll-hero-copy{display:flex;flex-direction:column;justify-content:center;padding-block:var(--space-md) var(--space-3xl)}
+  .ll-hero h1{font-size:var(--fs-hero);line-height:var(--lh-tight);color:var(--lg-offwhite);margin-bottom:var(--space-md)}
+  .ll-hero h1 .ll-cut{display:block;color:var(--lg-sage);font-weight:var(--fw-semibold);font-size:.62em;letter-spacing:var(--tr-snug);margin-top:var(--space-sm)}
+  .ll-hero .ll-sub{font-size:var(--fs-md);line-height:var(--lh-body);color:var(--text-on-dark-muted);max-width:var(--measure-tight);margin:0 0 var(--space-lg)}
+  .ll-hero .lg-eyebrow{color:var(--lg-sage);margin-bottom:var(--space-md)}
+  .ll-stats{display:flex;gap:var(--space-2xl);flex-wrap:wrap;margin:0 0 var(--space-xl)}
+  .ll-stats .lg-stat__num{font-size:var(--fs-2xl)}
+  .ll-actions{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap}
+  .ll-actions .ll-note{font-size:var(--fs-sm);color:var(--text-on-dark-muted)}
+  .ll-rating{display:flex;align-items:center;gap:var(--space-sm);margin-top:var(--space-xl);font-size:var(--fs-sm);color:var(--text-on-dark-muted);flex-wrap:wrap}
+  .ll-rating .ll-stars{color:var(--lg-sage);letter-spacing:.18em}
+  .ll-rating b{color:var(--lg-offwhite);font-weight:var(--fw-bold)}
+
+  /* Hero portrait: single subject, no overlay card.
+     Framed on Luke (centre 20%) so the face — the strongest trust signal
+     above the fold — is never obscured. Proof lives in the stats row,
+     the Trustpilot line, and the Results grid below. */
+  .ll-hero-media{
+    position:relative;min-height:34rem;border-radius:var(--radius-xl) var(--radius-xl) 0 0;overflow:hidden;
+    background:url('/assets/luke-hero.jpg') center 20%/cover no-repeat;
+  }
+  .ll-hero-media::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(16,36,32,0) 40%,rgba(16,36,32,.62) 100%);
+    pointer-events:none;
+  }
+
+  /* ---- Sound familiar ----------------------------------------- */
+  .ll-familiar-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:var(--space-2xl);align-items:center}
+  .ll-familiar ul{list-style:none;margin:var(--space-xl) 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg) var(--space-xl)}
+  .ll-familiar-img{border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-soft)}
+  .ll-familiar-img img{width:100%;height:100%;min-height:22rem;object-fit:cover}
+
+  /* ---- Imagine if --------------------------------------------- */
+  .ll-imagine{text-align:center}
+  .ll-imagine h2{margin-bottom:var(--space-2xl)}
+  .ll-imagine-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-xl);margin-bottom:var(--space-2xl)}
+  .ll-imagine-item{display:grid;justify-items:center;gap:var(--space-md)}
+  .ll-imagine-item svg{width:2.5rem;height:2.5rem;color:var(--lg-teal)}
+  .ll-imagine-item p{margin:0;font-size:var(--fs-sm);line-height:var(--lh-snug);color:var(--lg-charcoal);max-width:16ch}
+  .ll-imagine .ll-kicker{margin:0 auto;max-width:var(--measure-tight)}
+  .ll-imagine .ll-kicker b{display:block;color:var(--lg-teal);margin-top:var(--space-xs)}
+
+  /* ---- Results ------------------------------------------------- */
+  .ll-results-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:var(--space-md)}
+
+  /* ---- Social proof bar ---------------------------------------- */
+  .ll-social{border-block:var(--border-hairline);padding-block:var(--space-lg);background:var(--surface-card)}
+  .ll-social .ll-row{display:flex;justify-content:space-around;align-items:center;gap:var(--space-lg);flex-wrap:wrap}
+  .ll-social .ll-item{display:grid;justify-items:center;gap:var(--space-2xs);min-width:7rem}
+  .ll-social .ll-logotype{font-weight:var(--fw-extrabold);font-size:var(--fs-base);letter-spacing:-.01em;color:var(--lg-charcoal)}
+  .ll-social .ll-stars{color:var(--lg-coral);font-size:.8rem;letter-spacing:.18em}
+  .ll-social .ll-listen{display:inline-flex;align-items:center;gap:var(--space-xs);font-weight:var(--fw-semibold);font-size:var(--fs-sm);color:var(--lg-charcoal)}
+  .ll-social .ll-listen svg{width:1.1rem;height:1.1rem;color:var(--lg-teal)}
+
+  /* ---- How it works -------------------------------------------- */
+  .ll-how h2{text-align:center;margin-bottom:var(--space-2xl)}
+  .ll-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-xl);max-width:var(--w-content);margin-inline:auto}
+  .ll-step{text-align:center;position:relative;padding-inline:var(--space-xs)}
+  .ll-step .ll-num{
+    width:2.25rem;height:2.25rem;border:2px solid var(--lg-coral);border-radius:var(--radius-pill);
+    display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-md);
+    font-weight:var(--fw-extrabold);font-size:var(--fs-sm);color:var(--lg-teal);background:var(--surface-card);
+  }
+  .ll-step svg{width:2.4rem;height:2.4rem;margin:0 auto var(--space-md);color:var(--lg-teal)}
+  .ll-step h3{font-size:var(--fs-base);margin-bottom:var(--space-xs)}
+  .ll-step p{margin:0;font-size:var(--fs-sm);color:var(--text-muted);line-height:var(--lh-snug)}
+  .ll-step::after{content:"";position:absolute;right:calc(var(--space-xl) / -2);top:1.05rem;width:var(--space-md);height:2px;background:var(--lg-line-strong)}
+  .ll-step:last-child::after{display:none}
+
+  /* ---- Included / different ------------------------------------ */
+  .ll-twocol-grid{display:grid;grid-template-columns:1fr 17rem 1fr;gap:var(--space-2xl);align-items:start}
+  .ll-col h2{font-size:var(--fs-xl);margin-bottom:var(--space-lg)}
+  .ll-col ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md) var(--space-lg)}
+  .ll-col.ll-right ul{grid-template-columns:1fr}
+  .ll-col .ll-tagline{margin-top:var(--space-lg);padding-top:var(--space-md);border-top:var(--border-accent);border-top-width:3px;font-weight:var(--fw-medium);color:var(--lg-teal);font-size:var(--fs-base);line-height:var(--lh-snug)}
+
+  .ll-phone{
+    justify-self:center;width:13.75rem;height:27.5rem;background:var(--lg-teal-900);
+    border-radius:2rem;padding:7px;box-shadow:var(--shadow-lift);position:relative;
+  }
+  .ll-phone::before{content:"";position:absolute;top:.875rem;left:50%;transform:translateX(-50%);width:5rem;height:1.1rem;background:var(--lg-teal-900);border-radius:var(--radius-md);z-index:2}
+  .ll-phone-inner{width:100%;height:100%;background:var(--lg-teal);border-radius:1.6rem;overflow:hidden;color:var(--lg-offwhite);padding:2.2rem .9rem 1rem;font-size:.62rem}
+  .ll-phone-inner .ll-ph-top{text-align:center;font-size:.58rem;color:var(--text-on-dark-muted);margin-bottom:var(--space-sm)}
+  .ll-phone-inner .ll-ph-h{font-weight:var(--fw-extrabold);font-size:.88rem;margin:var(--space-2xs) 0 var(--space-md)}
+  .ll-phone-card{background:var(--lg-teal-800);border-radius:var(--radius-md);padding:.65rem;margin-bottom:.55rem;display:flex;gap:.55rem;align-items:center;border:1px solid var(--lg-line-onteal)}
+  .ll-phone-card .ll-icx{width:1.9rem;height:1.9rem;border-radius:var(--radius-sm);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .ll-phone-card .ll-icx svg{width:1rem;height:1rem}
+  .ll-phone-card .ll-tx b{display:block;font-size:.66rem;margin-bottom:.15rem;font-weight:var(--fw-bold)}
+  .ll-phone-card .ll-tx span{color:var(--text-on-dark-muted);font-size:.56rem}
+
+  /* ---- Closing: FAQ + CTA --------------------------------------- */
+  .ll-closing{background:var(--surface-dark);color:var(--text-on-dark);padding:0}
+  .ll-closing-grid{display:grid;grid-template-columns:1.1fr .8fr 1.1fr;align-items:stretch}
+  .ll-faq-col{padding:var(--section-y) var(--space-2xl) var(--section-y) 0}
+  .ll-faq-col h2{color:var(--lg-offwhite);font-size:var(--fs-xl);margin-bottom:var(--space-lg)}
+  .ll-closing .lg-accordion{border-top-color:var(--lg-line-onteal)}
+  .ll-closing .lg-accordion__item{border-bottom-color:var(--lg-line-onteal)}
+  .ll-closing .lg-accordion__head{color:var(--lg-offwhite);font-size:.95rem;padding-block:var(--space-md)}
+  .ll-closing .lg-accordion__body{color:var(--text-on-dark-muted);font-size:var(--fs-sm)}
+  .ll-photo-col{position:relative;min-height:30rem;background:url('/assets/luke-hero.jpg') center 15%/cover no-repeat}
+  .ll-photo-col::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,36,32,.18),rgba(16,36,32,.5))}
+  .ll-cta-col{padding:var(--section-y) 0 var(--section-y) var(--space-2xl);display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+  .ll-cta-col .lg-eyebrow{margin-bottom:var(--space-md)}
+  .ll-cta-col h3{font-size:var(--fs-h2);color:var(--lg-offwhite);margin-bottom:var(--space-2xs)}
+  .ll-cta-col h3 span{display:block;color:var(--lg-sage)}
+  .ll-cta-col p{color:var(--text-on-dark-muted);font-size:var(--fs-base);margin:var(--space-md) 0 var(--space-lg)}
+  .ll-cta-col .ll-act{display:grid;gap:var(--space-sm);justify-items:start}
+  .ll-cta-col .ll-act .ll-note{color:var(--text-on-dark-muted);font-size:var(--fs-xs)}
+
+  /* ---- Footer ----------------------------------------------------- */
+  .ll-footer{background:var(--lg-teal-900);color:var(--text-on-dark-muted);padding-block:var(--space-lg);font-size:var(--fs-xs)}
+  .ll-footer .ll-row{display:flex;justify-content:space-between;align-items:center;gap:var(--space-lg);flex-wrap:wrap}
+  .ll-footer .ll-brand{color:var(--lg-offwhite)}
+  .ll-footer .ll-brand svg{height:1.1rem}
+  .ll-footer .ll-brand .ll-wordmark{font-size:.72rem}
+  .ll-footer .ll-links-row{display:flex;gap:var(--space-lg)}
+  .ll-footer a:hover{color:var(--lg-offwhite)}
+
+  /* ---- Ticks ------------------------------------------------------ */
+  .lg-tick svg{width:1.25rem;height:1.25rem}
+
+  /* ---- Responsive -------------------------------------------------- */
+  @media(max-width:64em){
+    .ll-hero-grid{grid-template-columns:1fr;padding-top:var(--space-2xl)}
+    .ll-hero-copy{padding-bottom:var(--space-xl)}
+    .ll-hero-media{min-height:26rem;border-radius:var(--radius-xl)}
+    .ll-familiar-grid{grid-template-columns:1fr}
+    .ll-imagine-grid{grid-template-columns:repeat(2,1fr) }
+    .ll-results-grid{grid-template-columns:repeat(2,1fr)}
+    .ll-steps{grid-template-columns:repeat(2,1fr)}
+    .ll-step::after{display:none}
+    .ll-twocol-grid{grid-template-columns:1fr;gap:var(--space-2xl)}
+    .ll-phone{order:-1}
+    .ll-col.ll-right ul{grid-template-columns:1fr 1fr}
+    .ll-closing-grid{grid-template-columns:1fr}
+    .ll-faq-col{padding:var(--section-y-sm) 0}
+    .ll-photo-col{min-height:18rem}
+    .ll-cta-col{padding:var(--section-y-sm) 0}
+    .ll-links,.ll-nav > .lg-btn{display:none}
+    .ll-burger{display:block}
+    .ll-links.ll-open{
+      display:grid;position:absolute;inset:100% 0 auto 0;gap:0;
+      background:var(--lg-offwhite);border-bottom:var(--border-hairline);padding:var(--space-sm) 0;
+    }
+    .ll-links.ll-open li a{display:block;padding:var(--space-sm) var(--space-lg)}
+  }
+  @media(max-width:36em){
+    .ll-familiar ul,.ll-col ul,.ll-col.ll-right ul{grid-template-columns:1fr}
+    .ll-imagine-grid{grid-template-columns:1fr 1fr}
+    .ll-results-grid{grid-template-columns:1fr 1fr}
+    .ll-stats{gap:var(--space-xl)}
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<header class="ll-header" data-screen-label="Header">
+  <div class="lg-container ll-nav">
+    <a class="ll-brand" href="#top" aria-label="Luke Goulden — home">
+      <svg viewBox="76 78 298 237" role="img" aria-hidden="true"><path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="currentColor"></rect></svg>
+      <span class="ll-wordmark">Luke Goulden</span>
+    </a>
+    <ul class="ll-links" id="nav-links">
+      <li><a href="#coaching">Coaching</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#reviews">Reviews</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a class="lg-btn lg-btn--coral lg-btn--sm" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=header" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+    <button class="ll-burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+    </button>
+  </div>
+</header>
+
+<section class="ll-hero" id="top" data-screen-label="Hero">
+  <div class="lg-container">
+    <div class="ll-hero-grid">
+      <div class="ll-hero-copy">
+        <p class="lg-eyebrow"><?= $T['eyebrow'] ?></p>
+        <h1><?= $T['headline'] ?><span class="ll-cut"><?= $T['headline_accent'] ?></span></h1>
+        <p class="ll-sub"><?= $T['sub'] ?></p>
+        <div class="ll-stats">
+          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">100+</span><span class="lg-stat__label">Clients coached</span></div>
+          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">100+</span><span class="lg-stat__label">Five-star reviews</span></div>
+          <div class="lg-stat lg-stat--ondark"><span class="lg-stat__num">Results</span><span class="lg-stat__label">That actually last</span></div>
+        </div>
+        <div class="ll-actions">
+          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=hero" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+          <span class="ll-note"><?= $T['cta_note'] ?></span>
+        </div>
+        <p class="ll-cta-trust ll-cta-trust--ondark">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Speak directly with Luke</span>
+        </p>
+        <div class="ll-rating">
+          <span class="ll-stars" aria-hidden="true">★★★★★</span>
+          <span><b>Excellent</b> · rated 4.9 out of 5 from 100+ reviews on Trustpilot</span>
+        </div>
+      </div>
+      <div class="ll-hero-media" role="img" aria-label="Luke Goulden, online health and fitness coach"></div>
+    </div>
+  </div>
+</section>
+
+<section class="ll-section ll-section--card ll-familiar" id="coaching" data-screen-label="Sound familiar">
+  <div class="lg-container">
+    <div class="ll-familiar-grid">
+      <div>
+        <p class="lg-eyebrow">Where you are now</p>
+        <h2>Does this sound familiar?</h2>
+        <ul role="list">
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You’ve tried every diet, plan or programme — but nothing sticks</span></li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You feel tired, unmotivated and stuck</span></li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You know what to do, but struggle to stay consistent</span></li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>Your confidence has taken a hit</span></li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>Work, life and family always come first</span></li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg><span>You start strong, but always fall off track</span></li>
+        </ul>
+      </div>
+      <div class="ll-familiar-img"><img src="/assets/lifestyle.jpg" alt="A real week — training that fits around life"></div>
+    </div>
+  </div>
+</section>
+
+<section class="ll-section ll-section--calm ll-imagine" data-screen-label="Imagine if">
+  <div class="lg-container">
+    <h2>Imagine if…</h2>
+    <div class="ll-imagine-grid">
+      <div class="ll-imagine-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="5"></circle><circle cx="12" cy="12" r="1"></circle></svg><p>You had a clear plan built around your life</p></div>
+      <div class="ll-imagine-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h-2v11h2zM19.5 6.5h-2v11h2zM6.5 12h11M2 9.5v5M22 9.5v5"></path></svg><p>You got stronger, leaner and more confident</p></div>
+      <div class="ll-imagine-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L9.5 22 19 10.5h-6.5L13 2z"></path></svg><p>You had more energy for the people you love</p></div>
+      <div class="ll-imagine-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18M5 11v3a7 7 0 0014 0v-3M8 11V7a2 2 0 012-2h4a2 2 0 012 2v4"></path></svg><p>You enjoyed food without guilt or restriction</p></div>
+      <div class="ll-imagine-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"></circle><path d="M8.5 12.5L7 22l5-3 5 3-1.5-9.5"></path></svg><p>You finally got results that last</p></div>
+    </div>
+    <p class="ll-kicker">That’s what coaching is all about.<b>Realistic plans. Real support. Real results.</b></p>
+  </div>
+</section>
+
+<section class="ll-section" id="results" data-screen-label="Results">
+  <div class="lg-container">
+    <p class="lg-eyebrow">Client proof</p>
+    <h2 style="margin-bottom:var(--space-2xl)">Real people. Real results.</h2>
+    <div class="ll-results-grid">
+      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-craig.jpg" alt="Craig — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Craig</div><div class="lg-transform__result">−16.6kg</div><div class="lg-transform__weeks">12 weeks</div></figcaption></figure>
+      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-helen.jpg" alt="Helen — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Helen</div><div class="lg-transform__result">−11kg</div><div class="lg-transform__weeks">12 weeks</div></figcaption></figure>
+      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-jono.jpg" alt="Jono — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Jono</div><div class="lg-transform__result">−50lbs+</div><div class="lg-transform__weeks">6 months</div></figcaption></figure>
+      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-scott.jpg" alt="Scott — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Scott</div><div class="lg-transform__result">−45lbs</div><div class="lg-transform__weeks">5 months</div></figcaption></figure>
+      <figure class="lg-transform" style="margin:0"><img src="/assets/tf-richie.jpg" alt="Richie — before and after"><figcaption class="lg-transform__cap"><div class="lg-transform__name">Richie</div><div class="lg-transform__result">−14lbs</div><div class="lg-transform__weeks">8 weeks, before his wedding</div></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="ll-cta-band" data-screen-label="Mid-page CTA">
+  <div class="lg-container ll-inner">
+    <h2><?= $T['band_title'] ?><em><?= $T['band_accent'] ?></em></h2>
+    <p><?= $T['band_body'] ?></p>
+    <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_results" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+    <p class="ll-cta-trust ll-cta-trust--ondark">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Speak directly with Luke</span>
+    </p>
+  </div>
+</section>
+
+<section class="ll-social" id="reviews" data-screen-label="Reviews bar">
+  <div class="lg-container ll-row">
+    <div class="ll-item"><span class="ll-logotype">Facebook</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
+    <div class="ll-item"><span class="ll-logotype">Google</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
+    <div class="ll-item"><span class="ll-logotype">Trustpilot</span><span class="ll-stars" aria-label="Five stars">★★★★★</span></div>
+    <div class="ll-item"><span class="ll-listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0118 0v6"></path><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"></path></svg>Listen on Apple Podcasts</span></div>
+    <div class="ll-item"><span class="ll-listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 15a8 8 0 017 1M7.5 12a10 10 0 019 1M7 9a13 13 0 0111 1"></path></svg>Listen on Spotify</span></div>
+  </div>
+</section>
+
+<section class="ll-section ll-section--card ll-how" id="how" data-screen-label="How it works">
+  <div class="lg-container">
+    <h2>How coaching works</h2>
+    <div class="ll-steps">
+      <div class="ll-step">
+        <div class="ll-num">1</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"></path></svg>
+        <h3>Game plan call</h3>
+        <p>We get to know you and your goals, and map your roadmap.</p>
+      </div>
+      <div class="ll-step">
+        <div class="ll-num">2</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"></rect><path d="M9 8h6M9 12h6M9 16h4"></path></svg>
+        <h3>Personalised plan</h3>
+        <p>Training, nutrition and habit strategies built for your week.</p>
+      </div>
+      <div class="ll-step">
+        <div class="ll-num">3</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"></circle><path d="M2 21v-1a7 7 0 0114 0v1M16 3.5a4 4 0 010 7M22 21v-1a7 7 0 00-4-6.3"></path></svg>
+        <h3>Weekly accountability</h3>
+        <p>Check-ins, feedback and adjustments to keep you on track.</p>
+      </div>
+      <div class="ll-step">
+        <div class="ll-num">4</div>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v5a4 4 0 01-8 0V3z"></path><path d="M8 5H5a3 3 0 003 4M16 5h3a3 3 0 01-3 4M10 14h4v4h-4zM7 21h10"></path></svg>
+        <h3>Long-term results</h3>
+        <p>Build the body, confidence and lifestyle that stay with you.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ll-section" data-screen-label="What's included">
+  <div class="lg-container">
+    <div class="ll-twocol-grid">
+      <div class="ll-col">
+        <h2>What’s included</h2>
+        <ul role="list">
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Personalised training programme</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Progress tracking</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Personalised nutrition guidance</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Educational resources</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Weekly check-ins</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Habit coaching</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Direct coach support</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Accountability &amp; support</li>
+          <li class="lg-tick"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4"></path></svg>Coaching app access</li>
+        </ul>
+      </div>
+      <div class="ll-phone" role="img" aria-label="Coaching app — today's plan">
+        <div class="ll-phone-inner">
+          <div class="ll-ph-top">9:41</div>
+          <div class="ll-ph-h">Today’s plan</div>
+          <div class="ll-phone-card"><div class="ll-icx" style="background:var(--lg-sage)"><svg viewBox="0 0 24 24" fill="none" stroke="#1A3C34" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5h-2v11h2zM19.5 6.5h-2v11h2zM6.5 12h11"></path></svg></div><div class="ll-tx"><b>Push day</b><span>6 exercises · 45 min</span></div></div>
+          <div class="ll-phone-card"><div class="ll-icx" style="background:var(--lg-coral)"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 11h18M5 11v3a7 7 0 0014 0v-3"></path></svg></div><div class="ll-tx"><b>Nutrition</b><span>2,200 kcal · P 175g</span></div></div>
+          <div class="ll-phone-card"><div class="ll-icx" style="background:var(--lg-offwhite)"><svg viewBox="0 0 24 24" fill="none" stroke="#1A3C34" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M4 11h16"></path></svg></div><div class="ll-tx"><b>Check-in</b><span>Friday 9am</span></div></div>
+          <div class="ll-phone-card"><div class="ll-icx" style="background:var(--lg-teal-600)"><svg viewBox="0 0 24 24" fill="none" stroke="#F7F5F0" stroke-width="2" stroke-linecap="round"><path d="M13 4l-6 9h5l-1 7 6-9h-5l1-7z"></path></svg></div><div class="ll-tx"><b>Steps</b><span>8,420 / 10,000</span></div></div>
+        </div>
+      </div>
+      <div class="ll-col ll-right">
+        <h2>Why we’re different</h2>
+        <ul role="list">
+          <li class="lg-tick lg-tick--cross"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>No quick fixes or crash diets</li>
+          <li class="lg-tick lg-tick--cross"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>No meal-replacement shakes</li>
+          <li class="lg-tick lg-tick--cross"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>No unrealistic restrictions</li>
+          <li class="lg-tick lg-tick--cross"><svg class="lg-tick__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 9l6 6M15 9l-6 6"></path></svg>No cookie-cutter plans</li>
+        </ul>
+        <div class="ll-tagline">Just proven strategies, ongoing support — and a coach who truly cares.</div>
+      </div>
+    </div>
+    <div class="ll-cta-inline">
+      <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_included" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+      <p class="ll-cta-trust">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Speak directly with Luke</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="ll-closing" id="faq" data-screen-label="FAQ and closing CTA">
+  <div class="lg-container">
+    <div class="ll-closing-grid">
+      <div class="ll-faq-col">
+        <h2>Frequently asked questions</h2>
+        <div class="lg-accordion">
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">How much time do I need each week?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">Most clients see results with 3–4 sessions a week of 30–60 minutes, plus daily nutrition habits. The plan is built around your schedule — not the other way around.</div>
+          </details>
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">Do I need a gym membership?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">No. We can build your programme around a full gym, a home setup, or bodyweight only. The plan adapts to your equipment.</div>
+          </details>
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">Can I still eat out and enjoy food?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">Absolutely. Sustainability is the point. We build nutrition habits that fit real life — meals out, social events and a glass of wine included.</div>
+          </details>
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">What if I travel or have a busy job?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">Coaching is designed for exactly this. We plan around busy weeks, travel and family life with flexible training and simple nutrition rules.</div>
+          </details>
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">How long is the programme?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">Most clients commit to 12+ weeks because real change takes time — but you’ll feel the difference far sooner. We keep going as long as you want support.</div>
+          </details>
+          <details class="lg-accordion__item">
+            <summary class="lg-accordion__head">What results can I realistically expect?<svg class="lg-accordion__icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></summary>
+            <div class="lg-accordion__body">It depends on your starting point and consistency — but most clients feel strength, energy and confidence gains within weeks, and see meaningful body-composition change within the first 8–12 weeks.</div>
+          </details>
+        </div>
+      </div>
+      <div class="ll-photo-col" role="img" aria-label="Luke Goulden"></div>
+      <div class="ll-cta-col">
+        <p class="lg-eyebrow">Start where you are. Then keep going.</p>
+        <h3><?= $T['closing_title'] ?><span><?= $T['closing_accent'] ?></span></h3>
+        <p><?= $T['closing_body'] ?></p>
+        <div class="ll-act">
+          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=closing" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+          <span class="ll-note"><?= $T['cta_note'] ?></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="ll-footer" data-screen-label="Footer">
+  <div class="lg-container ll-row">
+    <a class="ll-brand" href="#top" aria-label="Luke Goulden — back to top">
+      <svg viewBox="76 78 298 237" role="img" aria-hidden="true"><path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="currentColor"></rect></svg>
+      <span class="ll-wordmark">Luke Goulden</span>
+    </a>
+    <div>© 2026 Luke Goulden Coaching. All rights reserved.</div>
+    <div class="ll-links-row"><a href="#">Privacy policy</a><a href="#">Terms &amp; conditions</a></div>
+  </div>
+</footer>
+
+<!-- Mobile sticky CTA: paid social traffic is overwhelmingly mobile, and the
+     page is long. Keeps the action one thumb-tap away at every scroll depth. -->
+<div class="ll-sticky-cta" id="sticky-cta" aria-hidden="true">
+  <div class="ll-sticky-copy">
+    <b>Ready to start?</b>
+    <span>Free call · Pick your time</span>
+  </div>
+  <a class="lg-btn lg-btn--coral" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=sticky_mobile" target="_blank" rel="noopener"><?= $T['cta_label_short'] ?></a>
+</div>
+
+<script>
+  (function () {
+    var burger = document.getElementById('burger');
+    var links = document.getElementById('nav-links');
+    if (burger && links) {
+      burger.addEventListener('click', function () {
+        var open = links.classList.toggle('ll-open');
+        burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      links.addEventListener('click', function (e) {
+        if (e.target.tagName === 'A') {
+          links.classList.remove('ll-open');
+          burger.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    /* Reveal the sticky CTA only once the hero button has scrolled out of
+       view — showing both at once would just compete with itself. */
+    var sticky = document.getElementById('sticky-cta');
+    var hero = document.getElementById('top');
+    if (sticky && hero && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        var heroVisible = entries[0].isIntersecting;
+        sticky.classList.toggle('is-on', !heroVisible);
+        sticky.setAttribute('aria-hidden', heroVisible ? 'true' : 'false');
+      }, { rootMargin: '-40% 0px 0px 0px' }).observe(hero);
+    }
+
+    /* ---- Measurement -------------------------------------------------
+       First-party, cookieless. Answers the only question this page owns:
+       of everyone who saw it, how many went to the application form — and
+       which CTA earned the click. sendBeacon so a click is never delayed
+       by tracking. No cookies, no IPs, no consent banner required. */
+    function beacon(params) {
+      try {
+        var url = '/track.php?' + params + '&t=' + Date.now();
+        if (navigator.sendBeacon) { navigator.sendBeacon(url); }
+        else { (new Image()).src = url; }
+      } catch (err) { /* tracking must never break the page */ }
+    }
+
+    var campaign = '';
+    try {
+      campaign = new URLSearchParams(window.location.search).get('utm_source') || '';
+    } catch (err) {}
+
+    beacon('e=view&lp=<?= $LP_ID ?>&r=' + encodeURIComponent(document.referrer || '') +
+           '&s=' + encodeURIComponent(campaign));
+
+    document.querySelectorAll('a[href*="calendly.com"]').forEach(function (link) {
+      link.addEventListener('click', function () {
+        var id = '';
+        try {
+          id = new URL(link.href).searchParams.get('utm_content') || '';
+        } catch (err) {}
+        if (id) { beacon('e=cta&lp=<?= $LP_ID ?>&c=' + encodeURIComponent(id)); }
+      });
+    });
+  })();
+</script>
+
+<style id="__om-edit-overrides"></style>
+</body>
+</html>
