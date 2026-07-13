@@ -10,9 +10,12 @@
  * brand-correct document with no dashboard chrome.
  */
 
-const SHARE_KEY = 'lgc-live-2026';
+/* Accepted keys. The pretty path /report/<key> rewrites to ?k=<key>, so
+   "results" is what Luke actually sees in the URL bar. The old key still
+   works so nothing already sent breaks. */
+const SHARE_KEYS = ['results', 'lgc-live-2026'];
 
-if (($_GET['k'] ?? '') !== SHARE_KEY) {
+if (!in_array($_GET['k'] ?? '', SHARE_KEYS, true)) {
     header('HTTP/1.1 404 Not Found');
     exit('Not found');
 }

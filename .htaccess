@@ -1,14 +1,16 @@
 # Luke Goulden Coaching — landing page (static) + first-party tracker.
 
-# Run PHP on the current stable interpreter (Simply.com convention).
 AddType application/x-httpd-php-latest .php
-
 DirectoryIndex index.html index.php
 
-# The raw event log is not personal data, but there's no reason for anyone
-# to read it: the dashboard (stats.php) is the only intended way in.
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # Pretty report link — /report/results  →  report.php?k=results
+  # This is the URL that gets sent to Luke, so it must not look like plumbing.
+  RewriteRule ^report/([A-Za-z0-9_\-]+)/?$ report.php?k=$1 [L,QSA]
+
+  # The raw event log isn't personal data, but there's no reason to serve it.
   RewriteRule ^lgc-data/ - [F,L]
 </IfModule>
 
@@ -17,8 +19,7 @@ DirectoryIndex index.html index.php
   Require all denied
 </FilesMatch>
 
-# Cache the heavy, unchanging assets; never cache the page itself, so edits
-# go live immediately rather than sitting in someone's browser cache.
+# Heavy assets cache hard; the page itself never caches, so edits go live at once.
 <IfModule mod_expires.c>
   ExpiresActive On
   ExpiresByType image/jpeg "access plus 1 year"

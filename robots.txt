@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Reporting surfaces are private — never index them.
+Disallow: /report
+Disallow: /report.php
+Disallow: /stats.php
+Disallow: /cron-report.php
+Disallow: /lgc-data/
