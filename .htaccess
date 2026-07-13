@@ -1,7 +1,12 @@
 # Luke Goulden Coaching — landing page (static) + first-party tracker.
 
 AddType application/x-httpd-php-latest .php
-DirectoryIndex index.html index.php
+
+# index.php (variant 01) is the homepage — it is the admin-editable version, so
+# colour and copy changes made in /admin.php take effect on "/" immediately.
+# index.html is the frozen pre-variant build; it stays on disk as a fallback but
+# is no longer served. Swap the order back to roll the old page out in seconds.
+DirectoryIndex index.php index.html
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
