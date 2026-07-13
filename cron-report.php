@@ -12,7 +12,9 @@
  */
 
 const CRON_KEY  = 'lgc-cron-2026';
-const MAIL_TO   = 'kempandersen@gmail.com';
+/* Pedro's working inbox. kempandersen@gmail.com is only a login identity —
+   he does not read it, so the weekly report must never be sent there. */
+const MAIL_TO   = 'pedro@kempandersen.dk';
 const MAIL_FROM = 'rapport@lukegouldencoaching.com';
 const LIVE_URL  = 'https://lukegouldencoaching.com/report/';
 

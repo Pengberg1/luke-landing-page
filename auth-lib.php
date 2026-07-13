@@ -9,7 +9,14 @@
  * Passwords live here only as bcrypt hashes. Plaintext is never written.
  */
 
-const AUTH_ADMIN_EMAIL = 'kempandersen@gmail.com';
+/* Pedro's working inbox. NOT kempandersen@gmail.com — he doesn't read that one,
+   it's only a login identity. An approval he never sees is the same as no
+   approval at all. /admin.php is the backstop: approvals work with no email. */
+const AUTH_ADMIN_EMAIL = 'pedro@kempandersen.dk';
+
+/* Only these accounts can approve people. */
+const AUTH_ADMINS      = ['pedro@kempandersen.dk'];
+
 const AUTH_MAIL_FROM   = 'rapport@lukegouldencoaching.com';
 const AUTH_SITE        = 'https://lukegouldencoaching.com';
 const AUTH_STORE       = __DIR__ . '/lgc-data/users.php';
