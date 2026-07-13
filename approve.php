@@ -1,74 +1,88 @@
 <?php
 /**
- * Approve or decline an access request — the links in Pedro's email land here.
+ * Approve / decline an access request from the email Pedro receives.
  *
- * The token is the authorisation: it is 48 random hex characters, single-use,
- * and expires after 7 days. Nothing else can flip an account to 'approved'.
+ *   /approve.php?token=…&do=approve
+ *   /approve.php?token=…&do=decline
+ *
+ * Deliberately NOT behind the sign-in gate: Pedro must be able to approve someone
+ * from his phone without signing in first. The token is what authorises it — 24
+ * random bytes, single use, seven-day life. Using it (either way) burns it, so a
+ * forwarded email cannot be replayed.
+ *
+ * /admin.php does the same job for anyone signed in, so a lost email is never a
+ * dead end.
  */
 
-require __DIR__ . '/auth-lib.php';
+require_once __DIR__ . '/auth-lib.php';
 
 $token  = (string)($_GET['token'] ?? '');
-$do     = (string)($_GET['do'] ?? '');
-$tokens = auth_tokens();
+$action = ($_GET['do'] ?? '') === 'decline' ? 'decline' : 'approve';
 
-$title = 'Link not valid';
-$msg   = 'This approval link has already been used, or it has expired. Ask the person to request access again.';
+$title = 'Link no longer valid';
+$body  = 'It may have been used already, or it expired. Open the admin page to approve or decline by hand.';
 $tone  = 'bad';
 
-if (isset($tokens[$token]) && $tokens[$token]['expires'] > time() && in_array($do, ['approve', 'decline'], true)) {
-    $email = $tokens[$token]['email'];
-    $users = auth_users();
-    $found = null;
+$row = $token !== '' ? auth_take_token($token) : null;
 
-    foreach ($users as $i => $u) {
-        if (strcasecmp($u['email'], $email) === 0) { $found = $i; break; }
-    }
+if ($row) {
+    $user = auth_find((string)$row['email']);
 
-    if ($found !== null) {
-        if ($do === 'approve') {
-            $users[$found]['status']   = 'approved';
-            $users[$found]['approved'] = gmdate('Y-m-d H:i');
-            $title = 'Access approved';
-            $msg   = htmlspecialchars($users[$found]['name']) . ' (' . htmlspecialchars($email) . ') can now sign in to the report.';
-            $tone  = 'ok';
+    if (!$user) {
+        $title = 'That account is gone';
+        $body  = 'It was removed before you got here. Nothing to do.';
+    } elseif ($action === 'approve') {
+        $user['status']   = 'approved';
+        $user['approved'] = gmdate('Y-m-d H:i');
+        if (auth_put($user)) {
+            $title = 'Approved';
+            $body  = htmlspecialchars((string)$user['name']) . ' can now sign in.';
+            $tone  = 'good';
         } else {
-            array_splice($users, $found, 1);   // declined requests are removed outright
-            $title = 'Request declined';
-            $msg   = htmlspecialchars($email) . ' has been removed. They cannot sign in.';
-            $tone  = 'ok';
+            $title = 'Could not save';
+            $body  = 'The user file would not write. Nothing has changed.';
         }
-        auth_save_users($users);
+    } else {
+        $user['status']   = 'declined';
+        $user['declined'] = gmdate('Y-m-d H:i');
+        if (auth_put($user)) {
+            $title = 'Declined';
+            $body  = htmlspecialchars((string)$user['name']) . ' cannot sign in. You can remove the account entirely on the admin page.';
+            $tone  = 'good';
+        } else {
+            $title = 'Could not save';
+            $body  = 'The user file would not write. Nothing has changed.';
+        }
     }
-
-    unset($tokens[$token]);          // single use, whatever the outcome
-    auth_save_tokens($tokens);
 }
 ?><!DOCTYPE html>
-<html lang="en-GB"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title><?= htmlspecialchars($title) ?> — Luke Goulden</title>
+<title><?= $title ?> — Luke Goulden</title>
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#1A3C34;padding:2rem 1.25rem;
-       font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;color:#1E1E1E}
-  .card{max-width:26rem;background:#F7F5F0;border-radius:16px;padding:2rem;text-align:center;
-        box-shadow:0 24px 60px rgba(0,0,0,.25)}
-  svg{height:1.4rem;color:#1A3C34;margin-bottom:1.25rem}
-  h1{font-size:1.3rem;font-weight:800;color:#1A3C34;margin:0 0 .5rem;letter-spacing:-.015em}
-  p{color:#555;font-size:.92rem;margin:0 0 1.5rem}
-  .dot{display:inline-block;width:.5rem;height:.5rem;border-radius:99px;margin-right:.4rem}
-  .ok .dot{background:#84B59F} .bad .dot{background:#E05A3A}
-  a{display:inline-block;background:#E05A3A;color:#fff;text-decoration:none;font-weight:700;font-size:.75rem;
-    letter-spacing:.1em;text-transform:uppercase;padding:.85rem 1.35rem;border-radius:4px}
-</style></head><body>
-  <div class="card <?= $tone ?>">
-    <svg viewBox="76 78 298 237" fill="currentColor" role="img" aria-label="Luke Goulden">
-      <path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
-      <rect x="171" y="179" width="203" height="36"/>
-    </svg>
-    <h1><span class="dot"></span><?= htmlspecialchars($title) ?></h1>
-    <p><?= $msg ?></p>
-    <a href="/report/">Open the report</a>
-  </div>
-</body></html>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:2rem;background:#1A3C34;
+       font:16px/1.6 system-ui,-apple-system,"Segoe UI",Helvetica,sans-serif;color:#1E1E1E}
+  .card{background:#F7F5F0;border-radius:16px;padding:2.25rem;max-width:26rem;width:100%;
+        box-shadow:0 24px 70px rgba(0,0,0,.28);text-align:center}
+  .dot{width:2.5rem;height:2.5rem;border-radius:99px;margin:0 auto 1.1rem;display:grid;place-items:center;
+       font-size:1.2rem;font-weight:700;color:#fff}
+  .good .dot{background:#84B59F}
+  .bad .dot{background:#E05A3A}
+  h1{margin:0 0 .5rem;font-size:1.3rem;letter-spacing:-.015em}
+  p{margin:0 0 1.5rem;color:#6b6b6b;font-size:.92rem}
+  a{display:inline-block;padding:.75rem 1.4rem;border-radius:7px;background:#1A3C34;color:#F7F5F0;
+    text-decoration:none;font-size:.74rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="card <?= $tone ?>">
+  <div class="dot"><?= $tone === 'good' ? '✓' : '!' ?></div>
+  <h1><?= $title ?></h1>
+  <p><?= $body ?></p>
+  <a href="/admin.php">Open admin</a>
+</div>
+</body>
+</html>

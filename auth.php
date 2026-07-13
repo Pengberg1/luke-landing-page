@@ -1,17 +1,23 @@
 <?php
 /**
- * Access gate for the report area.
+ * The access gate.
  *
- * require __DIR__ . '/auth.php';  at the top of any page that must be private.
- * If the visitor isn't signed in, this renders the branded sign-in screen and
- * stops — the protected page below never runs.
+ *   require __DIR__ . '/auth.php';   at the top of any page that must be private.
  *
- * Design decisions worth keeping:
- *  - Passwords are only ever stored as bcrypt hashes (password_hash/verify).
- *    No plaintext is written anywhere, including for pending requests.
- *  - New people can request access, but they cannot let themselves in: an
- *    account stays 'pending' and unusable until Pedro approves it by email.
- *  - Failed logins are throttled per session to make guessing impractical.
+ * If the visitor isn't signed in, this renders the sign-in / sign-up screen and
+ * stops — the page below it never runs, so a protected page cannot leak by
+ * accident.
+ *
+ * The rules, in one place:
+ *   1. Everyone signs up. There are no pre-made accounts and no shared password.
+ *   2. Nobody signs themselves in. A new account is 'pending' and cannot log in,
+ *      whatever password they type.
+ *   3. Pedro approves — by email (approve/decline links) or on /admin.php.
+ *      The one exception is Pedro's own address: the first signup from
+ *      AUTH_ADMIN_EMAIL is approved on the spot, because otherwise the very
+ *      first account would need an approver who doesn't exist yet.
+ *   4. Passwords exist only as bcrypt hashes. Nothing else is ever stored.
+ *   5. Five wrong guesses buys a five-minute cool-off.
  */
 
 require_once __DIR__ . '/auth-lib.php';
@@ -23,7 +29,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
 function auth_user(): ?array {
     if (empty($_SESSION['lgc_user'])) return null;
-    return auth_find($_SESSION['lgc_user']);
+    $u = auth_find($_SESSION['lgc_user']);
+    /* Approval can be revoked while someone is signed in — re-check every hit. */
+    return ($u && ($u['status'] ?? '') === 'approved') ? $u : null;
 }
 
 function auth_logout(): void {
@@ -31,17 +39,18 @@ function auth_logout(): void {
     session_destroy();
 }
 
-/* ---------- Handle form posts ------------------------------------------- */
+/* ---------- form posts ---------------------------------------------------- */
+
 $authError  = '';
 $authNotice = '';
 $showTab    = 'login';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
 
-    // Throttle guessing: 5 failures per session, then a cool-off.
     $fails = (int)($_SESSION['lgc_fails'] ?? 0);
-    $until = (int)($_SESSION['lgc_lock'] ?? 0);
+    $until = (int)($_SESSION['lgc_lock']  ?? 0);
 
+    /* ---- sign in ---- */
     if ($_POST['lgc_action'] === 'login') {
         if ($until > time()) {
             $authError = 'Too many attempts. Try again in ' . ($until - time()) . ' seconds.';
@@ -50,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
             $pass  = (string)($_POST['password'] ?? '');
             $u     = auth_find($email);
 
-            if ($u && ($u['status'] ?? '') === 'approved' && password_verify($pass, $u['hash'])) {
+            if ($u && ($u['status'] ?? '') === 'approved' && password_verify($pass, (string)$u['hash'])) {
                 session_regenerate_id(true);
                 $_SESSION['lgc_user'] = $u['email'];
                 unset($_SESSION['lgc_fails'], $_SESSION['lgc_lock']);
@@ -59,7 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
             }
 
             if ($u && ($u['status'] ?? '') === 'pending') {
-                $authError = 'That account is still waiting for approval.';
+                $authError = 'That account is still waiting for Pedro to approve it.';
+            } elseif ($u && ($u['status'] ?? '') === 'declined') {
+                $authError = 'That account was declined.';
             } else {
                 $_SESSION['lgc_fails'] = $fails + 1;
                 if ($fails + 1 >= 5) {
@@ -71,35 +82,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lgc_action'])) {
         }
     }
 
+    /* ---- sign up ---- */
     if ($_POST['lgc_action'] === 'signup') {
         $showTab = 'signup';
-        $name  = trim((string)($_POST['name'] ?? ''));
-        $email = trim((string)($_POST['email'] ?? ''));
-        $pass  = (string)($_POST['password'] ?? '');
+        $name    = trim((string)($_POST['name'] ?? ''));
+        $email   = strtolower(trim((string)($_POST['email'] ?? '')));
+        $pass    = (string)($_POST['password'] ?? '');
+        $pass2   = (string)($_POST['password2'] ?? '');
 
-        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($pass) < 8) {
-            $authError = 'Please give your name, a valid email, and a password of at least 8 characters.';
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $authError = 'Please give your name and a valid email address.';
+        } elseif (strlen($pass) < 8) {
+            $authError = 'Choose a password of at least 8 characters.';
+        } elseif ($pass !== $pass2) {
+            $authError = 'The two passwords do not match.';
         } elseif (auth_find($email)) {
-            $authNotice = 'There is already a request or an account for that email.';
+            $authError = 'There is already an account or a pending request for that email.';
         } else {
-            $users = auth_users();
-            $users[] = [
+            /* Pedro's own address is the bootstrap admin — see the header note. */
+            $isBoss = strcasecmp($email, AUTH_ADMIN_EMAIL) === 0;
+
+            $user = [
                 'email'  => $email,
                 'name'   => $name,
                 'hash'   => password_hash($pass, PASSWORD_BCRYPT, ['cost' => 12]),
-                'status' => 'pending',
+                'status' => $isBoss ? 'approved' : 'pending',
                 'added'  => gmdate('Y-m-d H:i'),
+                'mailed' => null,
             ];
-            auth_save_users($users);
 
-            $token  = bin2hex(random_bytes(24));
-            $tokens = auth_tokens();
-            $tokens[$token] = ['email' => $email, 'expires' => time() + 7 * 86400];
-            auth_save_tokens($tokens);
+            if (!auth_put($user)) {
+                $authError = 'Could not save the account. Tell Pedro — the user file may not be writable.';
+            } elseif ($isBoss) {
+                $authNotice = 'Your account is ready. Sign in above.';
+                $showTab    = 'login';
+            } else {
+                $user['mailed'] = auth_notify_request($user, auth_new_token($email));
+                auth_put($user);   // remember whether the email actually went out
 
-            auth_notify_request(['name' => $name, 'email' => $email], $token);
-
-            $authNotice = 'Thanks — your request has been sent to Pedro. You will be able to sign in once he approves it.';
+                $authNotice = 'Thanks — Pedro has been asked to approve you. '
+                            . 'You will be able to sign in once he does.';
+            }
         }
     }
 }
@@ -110,103 +133,120 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-/* ---------- Let automation read the JSON with a key --------------------- */
+/* ---------- automation reads the JSON with a key, not a password ---------- */
 $authApiOk = (($_GET['format'] ?? '') === 'json') && (($_GET['key'] ?? '') === AUTH_API_KEY);
 
-/* ---------- Gate --------------------------------------------------------- */
-if (!auth_user() && !$authApiOk) {
-    http_response_code(401);
-    $ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
-    ?><!DOCTYPE html>
-<html lang="en-GB"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+/* ---------- signed in? then get out of the way and let the page render ---- */
+if (auth_user() || $authApiOk) {
+    return;
+}
+
+/* ---------- otherwise: the gate ------------------------------------------ */
+http_response_code(401);
+$ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
+?><!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Sign in — Luke Goulden</title>
 <style>
   @font-face{font-family:Manrope;src:url('<?= $ds ?>/assets/fonts/Manrope-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
   @font-face{font-family:Manrope;src:url('<?= $ds ?>/assets/fonts/Manrope-Bold.ttf') format('truetype');font-weight:700;font-display:swap}
   @font-face{font-family:Manrope;src:url('<?= $ds ?>/assets/fonts/Manrope-ExtraBold.ttf') format('truetype');font-weight:800;font-display:swap}
-  :root{--teal:#1A3C34;--coral:#E05A3A;--sage:#84B59F;--off:#F7F5F0;--ink:#1E1E1E;--muted:#6b6b6b;--line:rgba(30,30,30,.12)}
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--teal);
-       font:16px/1.6 Manrope,system-ui,-apple-system,sans-serif;color:var(--ink);padding:2rem 1.25rem}
-  .card{width:100%;max-width:26rem;background:var(--off);border-radius:16px;overflow:hidden;
-        box-shadow:0 24px 60px rgba(0,0,0,.25)}
-  .head{padding:1.75rem 1.75rem 0}
-  .brand{display:inline-flex;align-items:center;gap:.55rem;color:var(--teal)}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;padding:2rem;
+       background:#1A3C34;color:#1E1E1E;
+       font:16px/1.6 Manrope,system-ui,-apple-system,"Segoe UI",Helvetica,sans-serif}
+  .card{background:#F7F5F0;border-radius:16px;padding:2.25rem;width:100%;max-width:27rem;
+        box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  .brand{display:flex;align-items:center;gap:.6rem;color:#1A3C34;margin-bottom:1.5rem}
   .brand svg{height:1.3rem;width:auto}
-  .wordmark{font-weight:700;letter-spacing:.22em;text-transform:uppercase;font-size:.78rem}
-  h1{font-size:1.35rem;font-weight:800;letter-spacing:-.015em;color:var(--teal);margin:1.25rem 0 .25rem}
-  .sub{color:var(--muted);font-size:.88rem;margin:0}
-  .tabs{display:flex;gap:.25rem;margin:1.5rem 1.75rem 0;border-bottom:1px solid var(--line)}
-  .tab{flex:1;background:none;border:0;cursor:pointer;font:inherit;font-size:.72rem;font-weight:700;
-       letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:.75rem 0;border-bottom:2px solid transparent}
-  .tab.on{color:var(--teal);border-bottom-color:var(--coral)}
-  form{padding:1.5rem 1.75rem 1.75rem}
-  form[hidden]{display:none}
-  label{display:block;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
-        color:var(--muted);font-weight:700;margin:0 0 .35rem}
-  input{width:100%;padding:.8rem .9rem;border:1px solid var(--line);border-radius:8px;background:#fff;
-        font:inherit;font-size:.95rem;margin-bottom:1rem}
-  input:focus{outline:2px solid var(--coral);outline-offset:1px;border-color:transparent}
-  button.go{width:100%;border:0;cursor:pointer;background:var(--coral);color:#fff;font:inherit;font-weight:700;
-            font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;padding:.9rem;border-radius:4px}
-  button.go:hover{background:#c94e31}
-  .msg{padding:.75rem .9rem;border-radius:8px;font-size:.85rem;margin-bottom:1rem;line-height:1.5}
-  .msg--bad{background:rgba(224,90,58,.1);color:#a33d24}
-  .msg--ok{background:rgba(132,181,159,.18);color:#2f6a55}
-  .foot{padding:0 1.75rem 1.5rem;color:var(--muted);font-size:.75rem;line-height:1.5}
-</style></head><body>
-  <div class="card">
-    <div class="head">
-      <div class="brand">
-        <svg viewBox="76 78 298 237" role="img" aria-label="Luke Goulden">
-          <path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
-          <rect x="171" y="179" width="203" height="36" fill="currentColor"/>
-        </svg>
-        <span class="wordmark">Luke Goulden</span>
-      </div>
-      <h1>Performance report</h1>
-      <p class="sub">Private. Sign in to view the numbers.</p>
-    </div>
-
-    <div class="tabs">
-      <button class="tab <?= $showTab === 'login' ? 'on' : '' ?>" type="button" onclick="show('login')" id="t-login">Sign in</button>
-      <button class="tab <?= $showTab === 'signup' ? 'on' : '' ?>" type="button" onclick="show('signup')" id="t-signup">Request access</button>
-    </div>
-
-    <form method="post" id="f-login" <?= $showTab === 'signup' ? 'hidden' : '' ?>>
-      <?php if ($authError): ?><div class="msg msg--bad"><?= htmlspecialchars($authError) ?></div><?php endif; ?>
-      <input type="hidden" name="lgc_action" value="login">
-      <label for="l-email">Email</label>
-      <input id="l-email" type="email" name="email" autocomplete="username" required>
-      <label for="l-pass">Password</label>
-      <input id="l-pass" type="password" name="password" autocomplete="current-password" required>
-      <button class="go" type="submit">Sign in</button>
-    </form>
-
-    <form method="post" id="f-signup" <?= $showTab === 'signup' ? '' : 'hidden' ?>>
-      <?php if ($authNotice): ?><div class="msg msg--ok"><?= htmlspecialchars($authNotice) ?></div><?php endif; ?>
-      <input type="hidden" name="lgc_action" value="signup">
-      <label for="s-name">Your name</label>
-      <input id="s-name" type="text" name="name" required>
-      <label for="s-email">Email</label>
-      <input id="s-email" type="email" name="email" autocomplete="username" required>
-      <label for="s-pass">Choose a password</label>
-      <input id="s-pass" type="password" name="password" autocomplete="new-password" minlength="8" required>
-      <button class="go" type="submit">Request access</button>
-    </form>
-
-    <p class="foot">Access is approved by Pedro. Requests are reviewed by hand — you will not be able to sign in until then.</p>
+  .brand span{font-size:.75rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase}
+  h1{margin:0 0 .3rem;font-size:1.4rem;letter-spacing:-.015em;font-weight:800}
+  p.sub{margin:0 0 1.5rem;color:#6b6b6b;font-size:.9rem}
+  .tabs{display:flex;gap:1.5rem;border-bottom:1px solid rgba(30,30,30,.12);margin-bottom:1.5rem}
+  .tabs button{background:none;border:0;padding:0 0 .75rem;cursor:pointer;
+        font:inherit;font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+        color:#9a9a9a;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tabs button.on{color:#1A3C34;border-bottom-color:#E05A3A}
+  label{display:block;font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+        color:#6b6b6b;margin:0 0 .4rem}
+  input{width:100%;padding:.78rem .85rem;border:1px solid rgba(30,30,30,.18);border-radius:7px;
+        font-size:1rem;background:#fff;margin-bottom:1.1rem;font-family:inherit}
+  input:focus{outline:2px solid #E05A3A;outline-offset:1px;border-color:transparent}
+  button.go{width:100%;padding:.9rem;border:0;border-radius:7px;background:#E05A3A;color:#fff;
+        font:inherit;font-weight:700;font-size:.78rem;letter-spacing:.11em;text-transform:uppercase;cursor:pointer}
+  button.go:hover{background:#c94d30}
+  .msg{padding:.8rem .95rem;border-radius:7px;font-size:.88rem;margin-bottom:1.25rem;line-height:1.5}
+  .bad{background:#fdecea;color:#8a2318}
+  .good{background:#e8f3ec;color:#1A3C34}
+  .note{margin:1.4rem 0 0;font-size:.76rem;color:#8a8a8a;line-height:1.55}
+  form{display:none}
+  form.on{display:block}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <svg viewBox="76 78 298 237" fill="currentColor" aria-hidden="true">
+      <path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
+      <rect x="171" y="179" width="203" height="36"/>
+    </svg>
+    <span>Luke Goulden</span>
   </div>
+
+  <h1>Report &amp; admin</h1>
+  <p class="sub">Private. One account gets you both.</p>
+
+  <div class="tabs">
+    <button type="button" id="tab-login"  class="<?= $showTab === 'login'  ? 'on' : '' ?>">Sign in</button>
+    <button type="button" id="tab-signup" class="<?= $showTab === 'signup' ? 'on' : '' ?>">Create account</button>
+  </div>
+
+  <?php if ($authError): ?>  <div class="msg bad"><?= htmlspecialchars($authError) ?></div>  <?php endif; ?>
+  <?php if ($authNotice): ?> <div class="msg good"><?= htmlspecialchars($authNotice) ?></div> <?php endif; ?>
+
+  <form method="post" id="form-login" class="<?= $showTab === 'login' ? 'on' : '' ?>">
+    <input type="hidden" name="lgc_action" value="login">
+    <label for="l-email">Email</label>
+    <input id="l-email" type="email" name="email" autocomplete="username" required>
+    <label for="l-pass">Password</label>
+    <input id="l-pass" type="password" name="password" autocomplete="current-password" required>
+    <button class="go" type="submit">Sign in</button>
+  </form>
+
+  <form method="post" id="form-signup" class="<?= $showTab === 'signup' ? 'on' : '' ?>">
+    <input type="hidden" name="lgc_action" value="signup">
+    <label for="s-name">Your name</label>
+    <input id="s-name" type="text" name="name" autocomplete="name" required>
+    <label for="s-email">Email</label>
+    <input id="s-email" type="email" name="email" autocomplete="username" required>
+    <label for="s-pass">Choose a password</label>
+    <input id="s-pass" type="password" name="password" minlength="8" autocomplete="new-password" required>
+    <label for="s-pass2">Repeat it</label>
+    <input id="s-pass2" type="password" name="password2" minlength="8" autocomplete="new-password" required>
+    <button class="go" type="submit">Request access</button>
+    <p class="note">Pedro approves every account by hand. You will not be able to
+       sign in until he does.</p>
+  </form>
+</div>
+
 <script>
-  function show(which){
-    document.getElementById('f-login').hidden  = which !== 'login';
-    document.getElementById('f-signup').hidden = which !== 'signup';
-    document.getElementById('t-login').classList.toggle('on', which === 'login');
-    document.getElementById('t-signup').classList.toggle('on', which === 'signup');
+  var tl = document.getElementById('tab-login'),
+      ts = document.getElementById('tab-signup'),
+      fl = document.getElementById('form-login'),
+      fs = document.getElementById('form-signup');
+  function show(which) {
+    var login = which === 'login';
+    tl.classList.toggle('on', login);  ts.classList.toggle('on', !login);
+    fl.classList.toggle('on', login);  fs.classList.toggle('on', !login);
   }
+  tl.addEventListener('click', function () { show('login'); });
+  ts.addEventListener('click', function () { show('signup'); });
 </script>
-</body></html><?php
-    exit;
-}
+</body>
+</html>
+<?php
+exit;
