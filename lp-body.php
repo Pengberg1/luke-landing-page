@@ -280,6 +280,7 @@
   }
 </style>
 
+<style id="lp-sections"><?= lp_sections_css() ?></style>
 <style id="lp-scheme">
   :root{
     --lg-teal: <?= $C['hero_bg'] ?>;
@@ -328,7 +329,7 @@
       <li><a href="#reviews">Reviews</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
-    <a class="lg-btn lg-btn--coral lg-btn--sm" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=header" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+    <a class="lg-btn lg-btn--coral lg-btn--sm" <?= lp_cta($CTA, 'header') ?>><?= $T['cta_label'] ?></a>
     <button class="ll-burger" id="burger" aria-label="Menu" aria-expanded="false" aria-controls="nav-links">
       <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
     </button>
@@ -357,7 +358,7 @@
           </div>
         </div>
         <div class="ll-actions">
-          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=hero" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+          <a class="lg-btn lg-btn--coral lg-btn--lg" <?= lp_cta($CTA, 'hero') ?>><?= $T['cta_label'] ?></a>
           <span class="ll-note"><?= $T['cta_note'] ?></span>
         </div>
         <p class="ll-cta-trust ll-cta-trust--ondark">
@@ -388,6 +389,8 @@
   </div>
 </section>
 <?php endif; ?>
+
+<?= lp_render_sections($SECTIONS, 'after_hero', $C, $CTA) ?>
 
 <section class="ll-section ll-section--card ll-familiar" id="coaching" data-screen-label="Sound familiar">
   <div class="lg-container">
@@ -446,7 +449,7 @@
   <div class="lg-container ll-inner">
     <h2><?= $T['band_title'] ?><em><?= $T['band_accent'] ?></em></h2>
     <p><?= $T['band_body'] ?></p>
-    <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_results" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+    <a class="lg-btn lg-btn--coral lg-btn--lg" <?= lp_cta($CTA, 'after_results') ?>><?= $T['cta_label'] ?></a>
     <p class="ll-cta-trust ll-cta-trust--ondark">
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
@@ -473,6 +476,8 @@
     <div class="ll-item"><span class="ll-listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 15a8 8 0 017 1M7.5 12a10 10 0 019 1M7 9a13 13 0 0111 1"></path></svg>Listen on Spotify</span></div>
   </div>
 </section>
+
+<?= lp_render_sections($SECTIONS, 'after_proof', $C, $CTA) ?>
 
 <section class="ll-section ll-section--card ll-how" id="how" data-screen-label="How it works">
   <div class="lg-container">
@@ -545,7 +550,7 @@
       </div>
     </div>
     <div class="ll-cta-inline">
-      <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=after_included" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+      <a class="lg-btn lg-btn--coral lg-btn--lg" <?= lp_cta($CTA, 'after_included') ?>><?= $T['cta_label'] ?></a>
       <p class="ll-cta-trust">
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
@@ -554,6 +559,8 @@
     </div>
   </div>
 </section>
+
+<?= lp_render_sections($SECTIONS, 'before_closing', $C, $CTA) ?>
 
 <section class="ll-closing" id="faq" data-screen-label="FAQ and closing CTA">
   <div class="lg-container">
@@ -595,7 +602,7 @@
         <h3><?= $T['closing_title'] ?><span><?= $T['closing_accent'] ?></span></h3>
         <p><?= $T['closing_body'] ?></p>
         <div class="ll-act">
-          <a class="lg-btn lg-btn--coral lg-btn--lg" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=closing" target="_blank" rel="noopener"><?= $T['cta_label'] ?></a>
+          <a class="lg-btn lg-btn--coral lg-btn--lg" <?= lp_cta($CTA, 'closing') ?>><?= $T['cta_label'] ?></a>
           <span class="ll-note"><?= $T['cta_note'] ?></span>
         </div>
       </div>
@@ -621,7 +628,7 @@
     <b>Ready to start?</b>
     <span>Free call · Pick your time</span>
   </div>
-  <a class="lg-btn lg-btn--coral" href="https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&amp;utm_medium=landing_page&amp;utm_campaign=lgc_lp&amp;utm_content=sticky_mobile" target="_blank" rel="noopener"><?= $T['cta_label_short'] ?></a>
+  <a class="lg-btn lg-btn--coral" <?= lp_cta($CTA, 'sticky_mobile') ?>><?= $T['cta_label_short'] ?></a>
 </div>
 
 <script>
@@ -677,12 +684,11 @@
     beacon('e=view&lp=<?= $LP_ID ?>&r=' + encodeURIComponent(document.referrer || '') +
            '&s=' + encodeURIComponent(campaign));
 
-    document.querySelectorAll('a[href*="calendly.com"]').forEach(function (link) {
+    /* Track every CTA by its data-cta hook — not the destination domain — so the
+       numbers keep working even after an admin changes the button's link. */
+    document.querySelectorAll('a[data-cta]').forEach(function (link) {
       link.addEventListener('click', function () {
-        var id = '';
-        try {
-          id = new URL(link.href).searchParams.get('utm_content') || '';
-        } catch (err) {}
+        var id = link.getAttribute('data-cta') || '';
         if (id) { beacon('e=cta&lp=<?= $LP_ID ?>&c=' + encodeURIComponent(id)); }
       });
     });

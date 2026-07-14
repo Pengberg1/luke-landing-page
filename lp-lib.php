@@ -133,6 +133,138 @@ function lp_create_page(array &$LPS, string $source, string $name): array {
 }
 
 /* --------------------------------------------------------------------------
+ * CTA link — every button points here. Editable per page in /admin.php; defaults
+ * to Luke's Calendly. Returns the href + tracking hook + new-tab attrs as one
+ * string, so a template writes: <a class="…" <?= lp_cta($CTA, 'hero') ?>>.
+ *
+ * data-cta is what our own click tracking listens for now (not the domain), so
+ * changing the destination to anything — Typeform, a phone booking, another page
+ * — keeps the numbers working.
+ * ------------------------------------------------------------------------ */
+function lp_cta(string $base, string $where): string {
+    $base = trim($base) ?: 'https://calendly.com/lukegouldenpt/coachingcall';
+    $sep  = strpos($base, '?') === false ? '?' : '&';
+    $url  = $base . $sep . 'utm_source=lukegouldencoaching&utm_medium=landing_page&utm_campaign=lgc_lp&utm_content=' . rawurlencode($where);
+    return 'href="' . htmlspecialchars($url, ENT_QUOTES) . '" data-cta="' . htmlspecialchars($where, ENT_QUOTES) . '" target="_blank" rel="noopener"';
+}
+
+/* --------------------------------------------------------------------------
+ * Custom sections — blocks an admin adds between the built-in sections.
+ *
+ * Each block: type + anchor (where on the page) + order + content. The templates
+ * call lp_render_sections($SECTIONS, 'after_hero', …) at three insertion points;
+ * every block assigned to that anchor renders there, in order. One renderer
+ * serves both the dark and light builds — it reads the page's own colours so a
+ * block always matches the page it's on.
+ * ------------------------------------------------------------------------ */
+function lp_section_types(): array {
+    return [
+        'video' => 'Full-width video',
+        'text'  => 'Text block',
+        'split' => 'Media + text (side by side)',
+        'image' => 'Full-width image',
+    ];
+}
+
+function lp_section_anchors(): array {
+    return [
+        'after_hero'     => 'Just below the hero',
+        'after_proof'    => 'After the results / proof',
+        'before_closing' => 'Before the closing call-to-action',
+    ];
+}
+
+/** Render every custom section assigned to one anchor, in order. */
+function lp_render_sections(array $sections, string $anchor, array $C, string $CTA): string {
+    $here = array_filter($sections, fn($s) => ($s['at'] ?? 'after_hero') === $anchor);
+    usort($here, fn($a, $b) => ((int)($a['order'] ?? 0)) <=> ((int)($b['order'] ?? 0)));
+    $out = '';
+    foreach ($here as $s) $out .= lp_render_one_section($s, $C, $CTA);
+    return $out;
+}
+
+/** One block. Backgrounds and accents come from the page's palette. */
+function lp_render_one_section(array $s, array $C, string $CTA): string {
+    $type    = $s['type'] ?? 'text';
+    $eyebrow = trim((string)($s['eyebrow'] ?? ''));
+    $heading = trim((string)($s['heading'] ?? ''));
+    $body    = trim((string)($s['body'] ?? ''));
+    $media   = $s['media'] ?? '';
+    $ctaLbl  = trim((string)($s['cta_label'] ?? ''));
+    $bg      = $s['bg'] ?? 'page';        // 'page' | 'tint' | 'dark'
+    $align   = ($s['align'] ?? 'left') === 'right' ? 'right' : 'left';
+
+    $dark   = lp_is_dark($C['page_bg']);
+    $surface = $bg === 'dark' ? $C['hero_bg']
+             : ($bg === 'tint' ? lp_shade($C['page_bg'], $dark ? 8 : -4) : $C['page_bg']);
+    $onDark  = $bg === 'dark' || lp_is_dark($surface);
+    $ink     = $onDark ? $C['hero_text'] : $C['ink'];
+    $muted   = lp_alpha($ink, .72);
+    $accent  = $C['accent'];
+    $accent2 = $C['accent_2'];
+
+    $wrapOpen  = '<section class="lp-sec" style="background:' . $surface . ';color:' . $ink . '">'
+               . '<div class="lp-sec-in">';
+    $wrapClose = '</div></section>';
+
+    $eyebrowH = $eyebrow !== '' ? '<p class="lp-sec-eyebrow" style="color:' . $accent . '">' . htmlspecialchars($eyebrow) . '</p>' : '';
+    $headingH = $heading !== '' ? '<h2 class="lp-sec-h" style="color:' . $ink . '">' . htmlspecialchars($heading) . '</h2>' : '';
+    $bodyH    = $body    !== '' ? '<p class="lp-sec-body" style="color:' . $muted . '">' . nl2br(htmlspecialchars($body)) . '</p>' : '';
+    $ctaH     = $ctaLbl  !== '' ? '<a class="lp-sec-btn" style="background:' . $accent . ';color:#fff" ' . lp_cta($CTA, 'section') . '>' . htmlspecialchars($ctaLbl) . '</a>' : '';
+
+    if ($type === 'video' || $type === 'image') {
+        $inner = ($eyebrowH || $headingH ? '<div class="lp-sec-head lp-sec-head--c">' . $eyebrowH . $headingH . '</div>' : '');
+        if ($type === 'video') {
+            $inner .= '<div class="lp-sec-video">' . lp_media_fill($media !== '' ? $media : '', ['alt' => $heading]) . '</div>';
+        } else {
+            $inner .= '<div class="lp-sec-image">' . lp_media_fill($media !== '' ? $media : '', ['alt' => $heading]) . '</div>';
+        }
+        if ($ctaH) $inner .= '<div class="lp-sec-cta">' . $ctaH . '</div>';
+        return $wrapOpen . $inner . $wrapClose;
+    }
+
+    if ($type === 'split') {
+        $mediaH = '<div class="lp-sec-splitmedia">' . lp_media_fill($media !== '' ? $media : '', ['alt' => $heading]) . '</div>';
+        $textH  = '<div class="lp-sec-splittext">' . $eyebrowH . $headingH . $bodyH . ($ctaH ? '<div class="lp-sec-cta">' . $ctaH . '</div>' : '') . '</div>';
+        $cols   = $align === 'right' ? $textH . $mediaH : $mediaH . $textH;
+        return $wrapOpen . '<div class="lp-sec-split">' . $cols . '</div>' . $wrapClose;
+    }
+
+    /* text */
+    $inner = '<div class="lp-sec-head lp-sec-head--c">' . $eyebrowH . $headingH . $bodyH
+           . ($ctaH ? '<div class="lp-sec-cta">' . $ctaH . '</div>' : '') . '</div>';
+    return $wrapOpen . $inner . $wrapClose;
+}
+
+/** The CSS the sections need — injected once per page by the templates. */
+function lp_sections_css(): string {
+    return '
+    .lp-sec{padding-block:clamp(3rem,6vw,5rem)}
+    .lp-sec-in{max-width:72rem;margin:0 auto;padding-inline:1.5rem}
+    .lp-sec-head{max-width:44rem}
+    .lp-sec-head--c{margin-inline:auto;text-align:center}
+    .lp-sec-eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0 0 .6rem}
+    .lp-sec-h{font-size:clamp(1.6rem,3.2vw,2.4rem);font-weight:800;letter-spacing:-.02em;line-height:1.15;margin:0}
+    .lp-sec-body{font-size:1.02rem;line-height:1.65;margin:1rem 0 0}
+    .lp-sec-cta{margin-top:1.5rem}
+    .lp-sec-btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;
+                font-weight:800;font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;
+                padding:1rem 1.8rem;border-radius:99px}
+    /* Full-width video — 16:9, spans the content width so it reads full-width. */
+    .lp-sec-video{position:relative;width:100%;aspect-ratio:16/9;margin-top:1.5rem;border-radius:16px;
+                  overflow:hidden;background:#000;box-shadow:0 20px 60px rgba(0,0,0,.18)}
+    .lp-sec-head + .lp-sec-video, .lp-sec-head + .lp-sec-image{margin-top:1.75rem}
+    .lp-sec-image{position:relative;width:100%;margin-top:1.5rem;border-radius:16px;overflow:hidden}
+    .lp-sec-image .lp-fill{position:static;height:auto;min-height:14rem}
+    .lp-sec-image img.lp-fill{height:auto}
+    .lp-sec-split{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,4vw,3.5rem);align-items:center}
+    .lp-sec-splitmedia{position:relative;aspect-ratio:4/3;border-radius:16px;overflow:hidden;box-shadow:0 16px 44px rgba(0,0,0,.15)}
+    .lp-sec-splittext{min-width:0}
+    @media(max-width:56em){ .lp-sec-split{grid-template-columns:1fr} }
+    ';
+}
+
+/* --------------------------------------------------------------------------
  * Media slots — a hero/lifestyle/closing slot can be a photo, an uploaded MP4,
  * or a YouTube/Vimeo link. All three fill the same container the photo did.
  *

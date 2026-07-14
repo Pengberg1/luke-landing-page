@@ -48,6 +48,60 @@ function ed_store($v): string {
     return trim(htmlspecialchars(strip_tags((string)$v), ENT_QUOTES));
 }
 
+/** The editable fields for ONE custom section. $i is the form index (a real
+ *  index for existing sections, or "__IDX__" for the JS "add" template). */
+function sec_editor_fields(string $i, array $s = []): string {
+    $type  = $s['type']    ?? 'text';
+    $at    = $s['at']      ?? 'after_hero';
+    $order = (int)($s['order'] ?? 0);
+    $bg    = $s['bg']      ?? 'page';
+    $align = $s['align']   ?? 'left';
+    $eye   = htmlspecialchars(html_entity_decode((string)($s['eyebrow']   ?? ''), ENT_QUOTES|ENT_HTML5), ENT_QUOTES);
+    $head  = htmlspecialchars(html_entity_decode((string)($s['heading']   ?? ''), ENT_QUOTES|ENT_HTML5), ENT_QUOTES);
+    $body  = htmlspecialchars((string)($s['body']      ?? ''), ENT_QUOTES);
+    $media = htmlspecialchars((string)($s['media']     ?? ''), ENT_QUOTES);
+    $cta   = htmlspecialchars((string)($s['cta_label'] ?? ''), ENT_QUOTES);
+
+    $opt = function(array $choices, string $sel) {
+        $h = '';
+        foreach ($choices as $k => $label) {
+            $h .= '<option value="' . htmlspecialchars($k) . '" ' . ($k === $sel ? 'selected' : '') . '>' . htmlspecialchars($label) . '</option>';
+        }
+        return $h;
+    };
+
+    ob_start(); ?>
+    <div class="secgrid">
+      <span class="fld"><label>Block</label>
+        <select name="sec_type[<?= $i ?>]"><?= $opt(lp_section_types(), $type) ?></select></span>
+      <span class="fld"><label>Position</label>
+        <select name="sec_at[<?= $i ?>]"><?= $opt(lp_section_anchors(), $at) ?></select></span>
+      <span class="fld"><label>Order</label>
+        <input type="number" name="sec_order[<?= $i ?>]" value="<?= $order ?>" style="width:4rem"></span>
+      <span class="fld"><label>Background</label>
+        <select name="sec_bg[<?= $i ?>]"><?= $opt(['page'=>'Page','tint'=>'Tinted','dark'=>'Dark'], $bg) ?></select></span>
+      <span class="fld"><label>Media side</label>
+        <select name="sec_align[<?= $i ?>]"><?= $opt(['left'=>'Media left','right'=>'Media right'], $align) ?></select></span>
+    </div>
+    <div class="secgrid">
+      <span class="fld"><label>Eyebrow (optional)</label><input type="text" name="sec_eyebrow[<?= $i ?>]" value="<?= $eye ?>"></span>
+      <span class="fld"><label>Heading (optional)</label><input type="text" name="sec_heading[<?= $i ?>]" value="<?= $head ?>"></span>
+    </div>
+    <span class="fld"><label>Body text (optional)</label><textarea name="sec_body[<?= $i ?>]"><?= $body ?></textarea></span>
+    <div class="secgrid">
+      <span class="fld"><label>Media — upload image / MP4</label>
+        <input type="file" name="sec_mediafile_<?= $i ?>" accept="image/jpeg,image/png,image/webp,video/mp4"></span>
+      <span class="fld"><label>…or paste a YouTube / Vimeo / image URL</label>
+        <input type="text" name="sec_media[<?= $i ?>]" value="<?= $media ?>" placeholder="https://…"></span>
+    </div>
+    <div class="secgrid">
+      <span class="fld"><label>Button text (optional — blank = no button)</label><input type="text" name="sec_cta[<?= $i ?>]" value="<?= $cta ?>"></span>
+      <label class="secdel"><input type="checkbox" name="sec_del[<?= $i ?>]" value="1"> Remove this section</label>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+
 /** Refuse anything an admin-only action was asked to do by a non-admin. */
 function lp_admin_guard(bool $isAdmin): void {
     if (!$isAdmin) {
@@ -287,6 +341,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $vid = trim((string)($_POST['video'] ?? ''));
             $LPS[$id]['video'] = (filter_var($vid, FILTER_VALIDATE_URL) || $vid === '') ? $vid : ($LPS[$id]['video'] ?? '');
 
+            /* CTA link — where every button on the page goes. Empty falls back to
+               Calendly in the template, so clearing it is safe. */
+            $cta = trim((string)($_POST['cta_url'] ?? ''));
+            $LPS[$id]['cta_url'] = ($cta === '' || filter_var($cta, FILTER_VALIDATE_URL)) ? $cta : ($LPS[$id]['cta_url'] ?? '');
+
+            /* Custom sections. The form sends parallel arrays keyed by a stable
+               index; we walk the indices present in sec_type and skip any the
+               admin ticked for removal. Each section can carry one media item
+               (uploaded file wins over a pasted URL). */
+            $newSecs = [];
+            foreach ((array)($_POST['sec_type'] ?? []) as $i => $stype) {
+                if (!empty($_POST['sec_del'][$i])) continue;                  // removed
+                $stype = in_array($stype, array_keys(lp_section_types()), true) ? $stype : 'text';
+                $at    = in_array(($_POST['sec_at'][$i] ?? ''), array_keys(lp_section_anchors()), true) ? $_POST['sec_at'][$i] : 'after_hero';
+
+                $mediaUp  = lp_take_upload('sec_mediafile_' . $i, true);
+                $mediaUrl = trim((string)($_POST['sec_media'][$i] ?? ''));
+                $media    = $mediaUp !== '' ? $mediaUp
+                          : (filter_var($mediaUrl, FILTER_VALIDATE_URL) ? $mediaUrl : $mediaUrl);
+
+                $newSecs[] = [
+                    'type'      => $stype,
+                    'at'        => $at,
+                    'order'     => (int)($_POST['sec_order'][$i] ?? 0),
+                    'bg'        => in_array(($_POST['sec_bg'][$i] ?? ''), ['page','tint','dark'], true) ? $_POST['sec_bg'][$i] : 'page',
+                    'align'     => ($_POST['sec_align'][$i] ?? '') === 'right' ? 'right' : 'left',
+                    'eyebrow'   => ed_store($_POST['sec_eyebrow'][$i] ?? ''),
+                    'heading'   => ed_store($_POST['sec_heading'][$i] ?? ''),
+                    'body'      => trim(strip_tags((string)($_POST['sec_body'][$i] ?? ''))),
+                    'media'     => $media,
+                    'cta_label' => ed_store($_POST['sec_cta'][$i] ?? ''),
+                ];
+            }
+            $LPS[$id]['sections'] = $newSecs;
+
             /* Photos. Two ways to change one: upload a file, or point at a path
                that is already on the server. Uploads land in /assets/uploads/ with
                a safe generated name — never the visitor's filename. */
@@ -498,6 +587,22 @@ $swatches = [
   .pic input[type=file]{font-size:.68rem;width:100%}
   .pic input[type=text],.pic select{width:100%;padding:.35rem .45rem;border:1px solid var(--line);
                                     border-radius:6px;font:inherit;font-size:.76rem;background:#fff}
+
+  /* Sections editor */
+  .secrow{border:1px solid var(--line);border-radius:12px;padding:1rem;margin-bottom:.9rem;background:#fbfaf8}
+  .secrow-h{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem}
+  .secrow-h b{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--teal)}
+  .secrow-h .sectype{font-size:.68rem;color:var(--muted)}
+  .secgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));gap:.7rem;margin-bottom:.7rem}
+  .secrow .fld{display:block;margin-bottom:.7rem}
+  .secrow label{display:block;font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:.3rem}
+  .secrow input[type=text],.secrow input[type=number],.secrow select,.secrow textarea{
+    width:100%;padding:.5rem .6rem;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:.86rem;background:#fff}
+  .secrow textarea{min-height:4rem;resize:vertical}
+  .secrow input[type=file]{font-size:.72rem}
+  .secdel{display:inline-flex;align-items:center;gap:.4rem;font-size:.76rem!important;letter-spacing:0!important;
+          text-transform:none!important;color:#a33d24;font-weight:700;align-self:end;margin-bottom:.5rem}
+  .add-sec{margin-top:.25rem}
   .ed footer{display:flex;align-items:center;gap:.75rem;padding:1.1rem 1.5rem;
              border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff;flex-wrap:wrap}
   .switch{display:inline-flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:800;
@@ -721,6 +826,11 @@ $swatches = [
               <input id="<?= $id ?>video" type="text" name="video" value="<?= htmlspecialchars($v['video'] ?? '') ?>"
                      placeholder="https://player.vimeo.com/video/… or https://www.youtube.com/embed/…">
             </span>
+            <span class="fld wide">
+              <label for="<?= $id ?>cta">Button link — where every button on this page goes (blank = Luke’s Calendly)</label>
+              <input id="<?= $id ?>cta" type="text" name="cta_url" value="<?= htmlspecialchars($v['cta_url'] ?? '') ?>"
+                     placeholder="https://calendly.com/lukegouldenpt/coachingcall">
+            </span>
 
             <?php foreach ($v['text'] as $k => $val):
                   $wide = in_array($k, ['sub','band_body','closing_body','headline'], true); ?>
@@ -734,6 +844,29 @@ $swatches = [
               </span>
             <?php endforeach; ?>
           </div>
+
+          <h4 class="edh">Extra sections</h4>
+          <p style="margin:-.4rem 0 .9rem;color:var(--muted);font-size:.78rem">
+            Drop in your own blocks between the built-in sections — a full-width video, a text block,
+            an image, or media beside text. Choose where each one sits and in what order.
+          </p>
+          <div class="secs" data-secs="<?= htmlspecialchars($id) ?>">
+            <?php foreach (($v['sections'] ?? []) as $si => $sec): ?>
+              <div class="secrow">
+                <div class="secrow-h"><b>Section</b><span class="sectype"><?= htmlspecialchars(lp_section_types()[$sec['type'] ?? 'text'] ?? 'Block') ?></span></div>
+                <?= sec_editor_fields((string)$si, $sec) ?>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <button class="ghost add-sec" type="button" data-add="<?= htmlspecialchars($id) ?>">+ Add section</button>
+
+          <!-- Blank section, cloned by JS when you click "Add section". -->
+          <template id="sectpl-<?= htmlspecialchars($id) ?>">
+            <div class="secrow">
+              <div class="secrow-h"><b>Section</b><span class="sectype">New</span></div>
+              <?= sec_editor_fields('__IDX__') ?>
+            </div>
+          </template>
         </div>
 
         <footer>
@@ -884,6 +1017,23 @@ $swatches = [
   document.querySelectorAll('[data-close]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       document.getElementById('ed-' + btn.dataset.close).close();
+    });
+  });
+
+  /* Add a section: clone the page's blank template, give every field a fresh
+     unique index so nothing collides on save, and append it to the list. */
+  var secSeq = Date.now();
+  document.querySelectorAll('[data-add]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pageId = btn.dataset.add;
+      var tpl    = document.getElementById('sectpl-' + pageId);
+      var list   = document.querySelector('[data-secs="' + pageId + '"]');
+      if (!tpl || !list) return;
+      var idx  = 'n' + (secSeq++);
+      var html = tpl.innerHTML.replace(/__IDX__/g, idx);
+      var wrap = document.createElement('div');
+      wrap.innerHTML = html.trim();
+      list.appendChild(wrap.firstChild);
     });
   });
 

@@ -31,6 +31,8 @@ $T = $V['text'];
 $IMG = $V['images']  ?? [];
 $RES = $V['results'] ?? [];
 $VID = trim((string)($V['video'] ?? ''));
+$CTA = trim((string)($V['cta_url'] ?? '')) ?: 'https://calendly.com/lukegouldenpt/coachingcall';
+$SECTIONS = $V['sections'] ?? [];
 $DARK_UI = lp_is_dark($C['page_bg']);
 
 /* Not live? The public gets a 404 — a paused campaign page must not be

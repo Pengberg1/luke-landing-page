@@ -27,7 +27,6 @@ $A2  = $C['accent_2'];    // sage — quiet support
 $TINT = $C['hero_bg'];    // blush surface for the calm sections
 $INK  = $C['ink'];
 $BG   = $C['page_bg'];
-$CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldencoaching&utm_medium=landing_page&utm_campaign=lgc_lp&utm_content=';
 ?>
 <style>
   :root{
@@ -230,6 +229,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   }
   @media(prefers-reduced-motion:reduce){ *{transition:none!important;scroll-behavior:auto} }
 </style>
+<style id="lp-sections"><?= lp_sections_css() ?></style>
 </head>
 <body>
 
@@ -248,7 +248,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
       <li><a href="#how">How it works</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
-    <a class="btn" href="<?= $CAL ?>header" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label_short']) ?></a>
+    <a class="btn" <?= lp_cta($CTA, 'header') ?>><?= htmlspecialchars($T['cta_label_short']) ?></a>
   </div>
 </header>
 
@@ -260,7 +260,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
       <p class="lede"><?= $T['sub'] ?></p>
 
       <div class="cta-row">
-        <a class="btn" href="<?= $CAL ?>hero" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label']) ?></a>
+        <a class="btn" <?= lp_cta($CTA, 'hero') ?>><?= htmlspecialchars($T['cta_label']) ?></a>
         <span class="note"><?= htmlspecialchars($T['cta_note']) ?></span>
       </div>
 
@@ -308,6 +308,8 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   </div>
 </section>
 <?php endif; ?>
+
+<?= lp_render_sections($SECTIONS, 'after_hero', $C, $CTA) ?>
 
 <section class="sec" id="familiar" data-screen-label="Sound familiar">
   <div class="wrap familiar-grid">
@@ -405,13 +407,15 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   <div class="wrap">
     <h2><?= $T['band_title'] ?><em><?= $T['band_accent'] ?></em></h2>
     <p><?= $T['band_body'] ?></p>
-    <a class="btn" href="<?= $CAL ?>after_results" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label']) ?></a>
+    <a class="btn" <?= lp_cta($CTA, 'after_results') ?>><?= htmlspecialchars($T['cta_label']) ?></a>
     <p class="trust" style="justify-content:center">
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Pick a time that suits you</span>
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
     </p>
   </div>
 </section>
+
+<?= lp_render_sections($SECTIONS, 'after_proof', $C, $CTA) ?>
 
 <section class="sec" id="how" data-screen-label="How it works">
   <div class="wrap">
@@ -455,7 +459,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
       <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>Direct message access when you need him</li>
     </ul>
     <div style="margin-top:2.5rem;display:grid;justify-items:start;gap:.75rem">
-      <a class="btn" href="<?= $CAL ?>after_included" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label']) ?></a>
+      <a class="btn" <?= lp_cta($CTA, 'after_included') ?>><?= htmlspecialchars($T['cta_label']) ?></a>
       <span class="note" style="font-size:.84rem;color:var(--soft)"><?= htmlspecialchars($T['cta_note']) ?></span>
     </div>
   </div>
@@ -493,6 +497,8 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   </div>
 </section>
 
+<?= lp_render_sections($SECTIONS, 'before_closing', $C, $CTA) ?>
+
 <section class="sec sec--card" data-screen-label="Closing CTA">
   <div class="wrap closing">
     <div class="closing-img">
@@ -502,7 +508,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
       <span class="eyebrow">Start where you are</span>
       <h2 style="margin-top:1rem"><?= $T['closing_title'] ?><em><?= $T['closing_accent'] ?></em></h2>
       <p><?= $T['closing_body'] ?></p>
-      <a class="btn" href="<?= $CAL ?>closing" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label']) ?></a>
+      <a class="btn" <?= lp_cta($CTA, 'closing') ?>><?= htmlspecialchars($T['cta_label']) ?></a>
       <p class="trust">
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Free — no obligation</span>
         <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>Speak directly with Luke</span>
@@ -529,7 +535,7 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
     <b>Ready when you are</b>
     <span>Free call · pick your time</span>
   </div>
-  <a class="btn" href="<?= $CAL ?>sticky_mobile" target="_blank" rel="noopener"><?= htmlspecialchars($T['cta_label_short']) ?></a>
+  <a class="btn" <?= lp_cta($CTA, 'sticky_mobile') ?>><?= htmlspecialchars($T['cta_label_short']) ?></a>
 </div>
 
 <script>
@@ -570,10 +576,10 @@ $CAL  = 'https://calendly.com/lukegouldenpt/coachingcall?utm_source=lukegouldenc
   beacon('e=view&lp=<?= $LP_ID ?>&r=' + encodeURIComponent(document.referrer || '') +
          '&s=' + encodeURIComponent(campaign));
 
-  document.querySelectorAll('a[href*="calendly.com"]').forEach(function (link) {
+  /* Track by the data-cta hook, so tracking survives a changed CTA link. */
+  document.querySelectorAll('a[data-cta]').forEach(function (link) {
     link.addEventListener('click', function () {
-      var id = '';
-      try { id = new URL(link.href).searchParams.get('utm_content') || ''; } catch (err) {}
+      var id = link.getAttribute('data-cta') || '';
       if (id) { beacon('e=cta&lp=<?= $LP_ID ?>&c=' + encodeURIComponent(id)); }
     });
   });
