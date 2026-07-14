@@ -11,7 +11,6 @@
 <link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/spacing.css">
 <link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/base.css">
 <link rel="stylesheet" href="/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9/tokens/components.css">
-<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#1A3C34"></rect><g transform="translate(28,32.5) scale(0.148) translate(-76,-78)"><path fill="#F7F5F0" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="#F7F5F0"></rect></g></svg></template>
 <style>
   /* ============================================================
      Page-level layout — every value reaches for LG tokens.
@@ -318,9 +317,9 @@
 
 <header class="ll-header" data-screen-label="Header">
   <div class="lg-container ll-nav">
-    <a class="ll-brand" href="#top" aria-label="Luke Goulden — home">
-      <svg viewBox="76 78 298 237" role="img" aria-hidden="true"><path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="currentColor"></rect></svg>
-      <span class="ll-wordmark">Luke Goulden</span>
+    <a class="ll-brand" href="#top" aria-label="<?= lp_brand() ?> — home">
+      <?= lp_logo_mark('1.45rem') ?>
+      <?php if (!lp_has_logo()): ?><span class="ll-wordmark"><?= lp_brand() ?></span><?php endif; ?>
     </a>
     <ul class="ll-links" id="nav-links">
       <li><a href="#coaching">Coaching</a></li>
@@ -612,9 +611,9 @@
 
 <footer class="ll-footer" data-screen-label="Footer">
   <div class="lg-container ll-row">
-    <a class="ll-brand" href="#top" aria-label="Luke Goulden — back to top">
-      <svg viewBox="76 78 298 237" role="img" aria-hidden="true"><path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"></path><rect x="171" y="179" width="203" height="36" fill="currentColor"></rect></svg>
-      <span class="ll-wordmark">Luke Goulden</span>
+    <a class="ll-brand" href="#top" aria-label="<?= lp_brand() ?> — back to top">
+      <?= lp_logo_mark('1.1rem') ?>
+      <?php if (!lp_has_logo()): ?><span class="ll-wordmark"><?= lp_brand() ?></span><?php endif; ?>
     </a>
     <div>© 2026 Luke Goulden Coaching. All rights reserved.</div>
     <div class="ll-links-row"><a href="#">Privacy policy</a><a href="#">Terms &amp; conditions</a></div>

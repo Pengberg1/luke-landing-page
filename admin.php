@@ -297,6 +297,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    /* ---- Brand: site-wide logo + name (admin only) ---- */
+    if ($what === 'brand') {
+        lp_admin_guard($isAdmin);
+        $site = lp_site();
+        $site['brand_name'] = trim(strip_tags((string)($_POST['brand_name'] ?? ''))) ?: $site['brand_name'];
+
+        $up  = lp_take_upload('logo_file');                       // PNG/JPG/WebP; auto-resized
+        $url = trim((string)($_POST['logo_url'] ?? ''));
+        if ($up !== '') {
+            $site['logo'] = $up;
+        } elseif (isset($_POST['logo_clear'])) {
+            $site['logo'] = '';                                  // back to the default wordmark
+        } elseif ($url !== '' && filter_var($url, FILTER_VALIDATE_URL)) {
+            $site['logo'] = $url;
+        }
+        $notice = lp_save_site($site) ? 'Brand saved.' : 'Could not save the brand settings.';
+        if ($uploadError) $notice = $uploadError;
+    }
+
     /* ---- Create a landing page: a copy of one, or a fresh page on a base
             template (admin only) ---- */
     if ($what === 'newpage') {
@@ -474,7 +493,7 @@ $swatches = [
 <html lang="en-GB"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Landing pages — Luke Goulden</title>
+<title>Landing pages — <?= lp_brand() ?></title>
 <style>
   :root{--teal:#1A3C34;--coral:#E05A3A;--sage:#84B59F;--off:#F7F5F0;--ink:#1E1E1E;
         --muted:#6b6b6b;--line:rgba(30,30,30,.12)}
@@ -620,6 +639,21 @@ $swatches = [
   .empty{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:1.75rem;
          text-align:center;color:var(--muted);font-size:.9rem}
 
+  /* Brand box */
+  .brandbox{background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:1.75rem;overflow:hidden}
+  .brandbox summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.7rem;
+                    padding:1rem 1.15rem;font-size:.9rem;color:var(--muted)}
+  .brandbox summary::-webkit-details-marker{display:none}
+  .brandbox summary b{color:var(--teal)}
+  .brandbox-logo{display:inline-flex;align-items:center;color:var(--teal)}
+  .brandform{display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1rem;
+             align-items:end;padding:0 1.15rem 1.25rem;border-top:1px solid var(--line);padding-top:1.15rem}
+  .brandform .fld{display:block}
+  .brandform label{display:block;font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:.35rem}
+  .brandform input[type=text]{width:100%;padding:.6rem .7rem;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:.9rem}
+  .brandform input[type=file]{font-size:.78rem}
+  .brandclear{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted)}
+
   /* Page header with the New-page button */
   .pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:1.5rem;margin-bottom:2rem}
   .primary.big{padding:.8rem 1.3rem;font-size:.74rem;flex:none;white-space:nowrap}
@@ -664,6 +698,32 @@ $swatches = [
              style="width:100%;padding:.6rem .7rem;border:1px solid rgba(30,30,30,.2);border-radius:6px;
                     font:inherit;font-size:.82rem;background:#fff">
     </div>
+  <?php endif; ?>
+
+  <?php if ($isAdmin): $site = lp_site(); ?>
+  <details class="brandbox">
+    <summary>
+      <span class="brandbox-logo"><?= lp_logo_mark('1.2rem') ?></span>
+      <b>Brand</b> — logo &amp; name (shown on every page, the sign-in and the report)
+    </summary>
+    <form method="post" enctype="multipart/form-data" class="brandform">
+      <input type="hidden" name="do" value="brand">
+      <span class="fld">
+        <label>Brand name</label>
+        <input type="text" name="brand_name" value="<?= htmlspecialchars($site['brand_name']) ?>">
+      </span>
+      <span class="fld">
+        <label>Logo — upload a PNG/JPG/WebP</label>
+        <input type="file" name="logo_file" accept="image/png,image/jpeg,image/webp">
+      </span>
+      <span class="fld">
+        <label>…or paste a logo URL (PNG or SVG)</label>
+        <input type="text" name="logo_url" placeholder="https://…/logo.svg">
+      </span>
+      <label class="brandclear"><input type="checkbox" name="logo_clear" value="1"> Remove logo (use the name in text)</label>
+      <button class="primary" type="submit">Save brand</button>
+    </form>
+  </details>
   <?php endif; ?>
 
   <div class="cards">

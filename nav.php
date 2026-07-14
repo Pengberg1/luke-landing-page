@@ -30,10 +30,7 @@ function lgc_nav(string $here = ''): void {
     </style>
     <nav class="lgc-nav">
       <div class="l">
-        <svg viewBox="76 78 298 237" fill="currentColor" aria-hidden="true" style="margin-right:.5rem">
-          <path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
-          <rect x="171" y="179" width="203" height="36"/>
-        </svg>
+        <span style="margin-right:.5rem;display:inline-flex"><?= function_exists('lp_logo_mark') ? lp_logo_mark('1rem') : '' ?></span>
         <?php foreach ($items as $key => [$label, $href]): ?>
           <a class="<?= $here === $key ? 'on' : '' ?>" href="<?= $href ?>"><?= $label ?></a>
         <?php endforeach; ?>

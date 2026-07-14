@@ -133,7 +133,7 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
 <html lang="en-GB"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Weekly performance — Luke Goulden Coaching</title>
+<title>Weekly performance — <?= lp_brand() ?></title>
 <style>
   @font-face{font-family:Manrope;src:url('<?= DS ?>/assets/fonts/Manrope-Regular.ttf') format('truetype');font-weight:400;font-display:swap}
   @font-face{font-family:Manrope;src:url('<?= DS ?>/assets/fonts/Manrope-SemiBold.ttf') format('truetype');font-weight:600;font-display:swap}
@@ -253,11 +253,8 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
 
   <div class="mast">
     <div class="brand">
-      <svg viewBox="76 78 298 237" role="img" aria-label="Luke Goulden">
-        <path fill="currentColor" d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
-        <rect x="171" y="179" width="203" height="36" fill="currentColor"/>
-      </svg>
-      <span class="wordmark">Luke Goulden</span>
+      <?= lp_logo_mark('1.5rem') ?>
+      <?php if (!lp_has_logo()): ?><span class="wordmark"><?= lp_brand() ?></span><?php endif; ?>
     </div>
     <div class="meta">
       <b>Weekly report</b>
@@ -268,13 +265,13 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
 
   <h1>Landing page performance</h1>
   <p class="lede">
-    How <b>lukegouldencoaching.com</b> performed at its one job this week: turning visitors into
-    booked calls on Calendly.
+    How the landing pages performed at their one job this week: turning visitors into
+    clicks through to the call-to-action.
   </p>
 
   <div class="actions">
     <button class="btn" onclick="window.print()">Save as PDF</button>
-    <a class="btn btn--ghost" href="https://lukegouldencoaching.com/" target="_blank" rel="noopener">View the page</a>
+    <a class="btn btn--ghost" href="/" target="_blank" rel="noopener">View the site</a>
     <a class="btn btn--ghost" href="?logout=1">Sign out</a>
   </div>
 
@@ -435,16 +432,16 @@ foreach ($this7['days'] as $d) { $maxDay = max($maxDay, $d['v']); }
     <p><b>Click-through rate is the number this page controls.</b> Of everyone who landed here, this is the share
       who went on to the booking page. If it falls, the page needs work. If visits fall but the rate holds,
       the page is fine — the traffic dried up.</p>
-    <p><b>What happens after the click is on Luke's side.</b> Compare the clicks above with the calls that
-      actually land in his Calendly: clicks in, calls booked out. A big gap means the booking page — not this
+    <p><b>What happens after the click is on the destination's side.</b> Compare the clicks above with the
+      bookings that actually complete: clicks in, bookings out. A big gap means the destination page — not this
       page — is where people are dropping off.</p>
     <p><b>Privacy:</b> no cookies, no IP addresses, no personal data. Nothing here can identify a visitor, which is
       why the page carries no consent banner.</p>
   </div>
 
   <div class="foot">
-    <span>Luke Goulden Coaching — landing page report</span>
-    <span>lukegouldencoaching.com → Calendly booking</span>
+    <span><?= lp_brand() ?> — landing pages report</span>
+    <span>Visitors → call-to-action clicks</span>
   </div>
 
 </div></body></html>

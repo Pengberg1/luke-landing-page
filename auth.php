@@ -212,11 +212,8 @@ $ds = '/_ds/luke-goulden-design-system-c14a0f1f-c08a-4904-9234-32785b9e3ab9';
 <body>
 <div class="card">
   <div class="brand">
-    <svg viewBox="76 78 298 237" fill="currentColor" aria-hidden="true">
-      <path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>
-      <rect x="171" y="179" width="203" height="36"/>
-    </svg>
-    <span>Luke Goulden</span>
+    <?= lp_logo_mark('1.3rem') ?>
+    <?php if (!lp_has_logo()): ?><span><?= lp_brand() ?></span><?php endif; ?>
   </div>
 
   <h1>Report &amp; admin</h1>

@@ -20,6 +20,11 @@
  * readable even though it isn't PHP.
  */
 
+/* Brand helpers (logo + name) live in lp-lib and are used by the sign-in gate,
+   the reset and approve screens too — so pull them in here. require_once keeps
+   pages that also load lp-lib from double-including. */
+require_once __DIR__ . '/lp-lib.php';
+
 /* The admin inbox. Approval-request emails go here (best-effort — the admin page
    is the real source of truth, so a lost email never blocks anyone). */
 const AUTH_ADMIN_EMAIL = 'pedro@kempandersen.dk';

@@ -21,6 +21,55 @@
 
 const LP_STORE  = __DIR__ . '/lgc-data/variants.json';
 const LP_LEGACY = __DIR__ . '/lgc-data/variants.php';   // migrated from, once
+const LP_SITE   = __DIR__ . '/lgc-data/site.json';      // site-wide brand config
+
+/* --------------------------------------------------------------------------
+ * Brand — site-wide, not per page. One logo and one name run everywhere: the
+ * landing headers/footers, the sign-in screen, the report, the admin. Editing
+ * these (in /admin.php) is how the whole build gets re-skinned for a new client
+ * without touching code. `logo` empty → the default wordmark SVG is used.
+ * ------------------------------------------------------------------------ */
+function lp_site(): array {
+    $d = is_file(LP_SITE) ? json_decode((string)@file_get_contents(LP_SITE), true) : [];
+    return array_merge(['brand_name' => 'Luke Goulden', 'logo' => ''], is_array($d) ? $d : []);
+}
+
+function lp_save_site(array $s): bool {
+    $json = json_encode($s, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if ($json === false) return false;
+    $tmp = LP_SITE . '.tmp';
+    if (@file_put_contents($tmp, $json, LOCK_EX) === false) return false;
+    if (!@rename($tmp, LP_SITE)) { @unlink($tmp); return false; }
+    return true;
+}
+
+function lp_has_logo(): bool {
+    return trim((string)lp_site()['logo']) !== '';
+}
+
+/**
+ * The logo mark. An uploaded image if the client set one, otherwise the default
+ * SVG. Height is inline so it renders the same wherever it's dropped. When a
+ * custom logo image is set, the caller should hide its adjacent wordmark text —
+ * the image usually already contains the name.
+ */
+function lp_logo_mark(string $height = '1.45rem'): string {
+    $site = lp_site();
+    $name = htmlspecialchars((string)$site['brand_name'], ENT_QUOTES);
+    if (trim((string)$site['logo']) !== '') {
+        return '<img src="' . htmlspecialchars((string)$site['logo'], ENT_QUOTES) . '" alt="' . $name . '" '
+             . 'style="height:' . htmlspecialchars($height, ENT_QUOTES) . ';width:auto;display:block">';
+    }
+    return '<svg viewBox="76 78 298 237" fill="currentColor" role="img" aria-label="' . $name . '" '
+         . 'style="height:' . htmlspecialchars($height, ENT_QUOTES) . ';width:auto">'
+         . '<path d="M305.5 155A118.5 118.5 0 1 0 305.5 238L264.6 238A81.5 81.5 0 1 1 264.6 155Z"/>'
+         . '<rect x="171" y="179" width="203" height="36"/></svg>';
+}
+
+/** The brand name, escaped, for wordmarks and copy. */
+function lp_brand(): string {
+    return htmlspecialchars((string)lp_site()['brand_name'], ENT_QUOTES);
+}
 
 function lp_variants(): array {
     if (is_file(LP_STORE)) {
